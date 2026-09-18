@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CESuite draft injection plan; not executable or a safety certificate",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "status": {
+      "const": "draft"
+    },
+    "architecture": {
+      "enum": [
+        "x86",
+        "x64",
+        "unknown"
+      ]
+    },
+    "target_build_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "aob": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "enum": [
+            "process",
+            "module",
+            "region"
+          ]
+        },
+        "module": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "region_start": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "region_end": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "match_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "required": [
+        "scope",
+        "module",
+        "region_start",
+        "region_end",
+        "pattern",
+        "match_count"
+      ],
+      "additionalProperties": false
+    },
+    "signature_anchor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hook_address": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hook_offset_expression": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "jump_form": {
+      "enum": [
+        "short5",
+        "far14",
+        "unknown"
+      ]
+    },
+    "overwrite_length": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "original_bytes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "restore_bytes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "relocation_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owned_allocations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owned_symbols": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "teardown_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "whole_instructions": {
+          "enum": [
+            "unverified",
+            "pass",
+            "fail"
+          ]
+        },
+        "exact_restore": {
+          "enum": [
+            "unverified",
+            "pass",
+            "fail"
+          ]
+        },
+        "current_build_unique": {
+          "enum": [
+            "unverified",
+            "pass",
+            "fail"
+          ]
+        },
+        "cross_build_robust": {
+          "enum": [
+            "unverified",
+            "pass",
+            "fail"
+          ]
+        },
+        "thread_safety": {
+          "enum": [
+            "unverified",
+            "pass",
+            "fail"
+          ]
+        }
+      },
+      "required": [
+        "whole_instructions",
+        "exact_restore",
+        "current_build_unique",
+        "cross_build_robust",
+        "thread_safety"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "architecture",
+    "target_build_sha256",
+    "aob",
+    "signature_anchor",
+    "hook_address",
+    "hook_offset_expression",
+    "jump_form",
+    "overwrite_length",
+    "original_bytes",
+    "restore_bytes",
+    "relocation_notes",
+    "owned_allocations",
+    "owned_symbols",
+    "teardown_steps",
+    "validation"
+  ],
+  "additionalProperties": false
+}

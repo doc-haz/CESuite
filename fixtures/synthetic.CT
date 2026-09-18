@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="45">
+  <CheatEntries>
+    <CheatEntry>
+      <ID>1</ID><Description>"Synthetic library"</Description><VariableType>Auto Assembler Script</VariableType>
+      <AssemblerScript><![CDATA[[ENABLE]
+aobscanmodule(anchor,"synthetic,module.exe",48 8B ?? ??)
+alloc(scratch,1000,anchor)
+registersymbol(scratch)
+{$lua}
+if syntaxcheck then return end
+local timer = createTimer(nil)
+{$asm}
+[DISABLE]
+unregistersymbol(scratch)
+dealloc(scratch)
+]]></AssemblerScript>
+      <CheatEntries><CheatEntry><ID>2</ID><Description>"Synthetic value"</Description><VariableType>4 Bytes</VariableType><Address>scratch</Address><Offsets><Offset>10</Offset></Offsets></CheatEntry></CheatEntries>
+    </CheatEntry>
+  </CheatEntries>
+  <LuaScript><![CDATA[-- Synthetic lifecycle marker only.
+function debugger_onBreakpoint() return 0 end
+]]></LuaScript>
+</CheatTable>

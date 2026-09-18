@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CT Analyzer 0.1 report",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "analyzer_version": {
+      "const": "0.1.0"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "name",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "variable_type": {
+            "type": "string"
+          },
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "offsets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scripts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "id",
+          "parent_key",
+          "children",
+          "description",
+          "variable_type",
+          "address",
+          "offsets",
+          "scripts"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "scripts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "record_key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "enum": [
+              "AA",
+              "Lua"
+            ]
+          },
+          "origin": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "record_key",
+          "language",
+          "origin",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "aobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "section": {
+            "enum": [
+              "common",
+              "enable",
+              "disable"
+            ]
+          },
+          "command": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "process",
+              "module",
+              "region"
+            ]
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "uniqueness": {
+            "const": "unverified"
+          }
+        },
+        "required": [
+          "script_id",
+          "line",
+          "section",
+          "command",
+          "arguments",
+          "symbol",
+          "scope",
+          "pattern",
+          "uniqueness"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "section": {
+            "enum": [
+              "common",
+              "enable",
+              "disable"
+            ]
+          },
+          "command": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "script_id",
+          "line",
+          "section",
+          "command",
+          "arguments"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "allocations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "section": {
+            "enum": [
+              "common",
+              "enable",
+              "disable"
+            ]
+          },
+          "command": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "script_id",
+          "line",
+          "section",
+          "command",
+          "arguments"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "consumer": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kind": {
+            "enum": [
+              "address-symbol-candidate",
+              "script-text-candidate"
+            ]
+          }
+        },
+        "required": [
+          "consumer",
+          "symbol",
+          "providers",
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "severity": {
+            "const": "review"
+          },
+          "message": {
+            "type": "string"
+          },
+          "script_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          }
+        },
+        "required": [
+          "rule",
+          "severity",
+          "message",
+          "script_id",
+          "line"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "analyzer_version",
+    "source",
+    "records",
+    "scripts",
+    "aobs",
+    "symbols",
+    "allocations",
+    "dependencies",
+    "warnings",
+    "limitations"
+  ],
+  "additionalProperties": false
+}
