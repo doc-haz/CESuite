@@ -1,6 +1,10 @@
 # Architecture
 
-CESuite separates offline evidence collection from future runtime validation and authoring. No runtime component is implemented in 0.1.
+CESuite separates offline evidence collection, opt-in runtime observation and future
+authoring. CT Analyzer 0.1 remains independent. Core Runtime 0.1.0 adds `ce/` modules
+for environment, lexical parsing, table inspection, scoped AOB scans, disassembly,
+JSON export and owned UI lifecycle. `tools/build_ce.py` packages a private module
+loader into one self-contained CT. See [runtime architecture and coverage](runtime-core.md).
 
 1. A bounded reader accepts CT XML and rejects DTD/entity declarations.
 2. The inventory preserves MemoryRecord parent/child relationships, IDs, addresses, offsets and script text. Report-local keys avoid collisions when CT IDs repeat or are missing.

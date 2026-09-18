@@ -19,3 +19,4 @@ build/
 *.dylib
 *.zip
 *.7z
+ce/tests/generated-*.json

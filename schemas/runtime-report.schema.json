@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dokkoriax/CESuite/schemas/runtime-report.schema.json",
+  "title": "CESuite Core Runtime Report 0.1",
+  "type": "object",
+  "required": ["schema_version", "core_version", "ce_version", "generated_at", "completed_at", "mode", "observation_only", "target", "modules", "records", "scripts", "aobs", "resources", "diagnostics", "limitations"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "core_version": {"const": "0.1.0"},
+    "ce_version": {"type": "string"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "mode": {"enum": ["process", "table", "selected", "validate", "export"]},
+    "observation_only": {"const": true},
+    "target": {
+      "type": "object", "required": ["pid", "attached", "name", "architecture", "build_fingerprint"],
+      "additionalProperties": false,
+      "properties": {
+        "pid": {"type": ["integer", "null"], "minimum": 0},
+        "attached": {"type": "boolean"}, "name": {"type": ["string", "null"]},
+        "architecture": {"$ref": "#/$defs/architecture"}, "build_fingerprint": {"type": "null"}
+      }
+    },
+    "modules": {"type": "array", "items": {
+      "type": "object", "required": ["name", "base", "size", "path", "architecture"], "additionalProperties": false,
+      "properties": {"name": {"type": "string"}, "base": {"$ref": "#/$defs/nullableAddress"},
+        "size": {"type": ["integer", "null"], "minimum": 0}, "path": {"type": ["string", "null"]},
+        "architecture": {"$ref": "#/$defs/architecture"}}
+    }},
+    "ct": {"type": "object", "required": ["status", "selection_only", "table_lua_status"], "additionalProperties": false,
+      "properties": {"status": {"enum": ["unavailable", "captured"]}, "selection_only": {"type": "boolean"},
+        "table_lua_status": {"enum": ["unavailable", "editor_snapshot"]}, "loaded_table_version": {"type": ["integer", "null"]}}},
+    "records": {"type": "array", "items": {
+      "type": "object", "required": ["key", "id", "parent_key", "description", "address", "variable_type", "active", "scripts", "offsets"],
+      "additionalProperties": false,
+      "properties": {"key": {"type": "string"}, "id": {"type": ["integer", "null"]},
+        "parent_key": {"type": ["string", "null"]}, "description": {"type": "string"},
+        "address": {"type": ["string", "null"]}, "variable_type": {"type": ["integer", "null"]}, "active": {"type": "boolean"},
+        "scripts": {"$ref": "#/$defs/strings"}, "offsets": {"$ref": "#/$defs/strings"}}
+    }},
+    "scripts": {"type": "array", "items": {
+      "type": "object", "required": ["id", "language", "text", "record_key", "origin"], "additionalProperties": false,
+      "properties": {"id": {"type": "string"}, "language": {"enum": ["AA", "Lua"]}, "text": {"type": "string"},
+        "record_key": {"type": ["string", "null"]}, "origin": {"type": "string"}, "parent_script_id": {"type": "string"},
+        "line": {"type": "integer", "minimum": 1}, "dynamic": {"type": "boolean"},
+        "defines": {"type": "object", "additionalProperties": {"type": ["string", "boolean"]}},
+        "labels": {"type": "array", "items": {"type": "object", "required": ["expression", "line"], "additionalProperties": false,
+          "properties": {"expression": {"type": "string"}, "line": {"type": "integer", "minimum": 1}}}}
+      }
+    }},
+    "aobs": {"type": "array", "items": {"$ref": "#/$defs/aob"}},
+    "resources": {"type": "array", "items": {
+      "type": "object", "required": ["script_id", "line", "section", "command", "arguments", "ownership", "lifecycle"], "additionalProperties": false,
+      "properties": {"script_id": {"type": "string"}, "line": {"type": "integer", "minimum": 1}, "section": {"$ref": "#/$defs/section"},
+        "command": {"enum": ["alloc", "globalalloc", "dealloc", "registersymbol", "unregistersymbol"]},
+        "arguments": {"$ref": "#/$defs/strings"}, "ownership": {"const": "unverified"}, "lifecycle": {"const": "unverified"}}
+    }},
+    "diagnostics": {"type": "array", "items": {
+      "type": "object", "required": ["rule", "severity", "evidence", "message", "script_id", "line"], "additionalProperties": false,
+      "properties": {"rule": {"type": "string"}, "severity": {"const": "review"}, "evidence": {"const": "unverified"},
+        "message": {"type": "string"}, "script_id": {"type": ["string", "null"]}, "line": {"type": ["integer", "null"], "minimum": 1}}
+    }},
+    "limitations": {"$ref": "#/$defs/strings"}
+  },
+  "$defs": {
+    "architecture": {"enum": ["x86", "x64", "unknown"]},
+    "section": {"enum": ["common", "enable", "disable"]},
+    "strings": {"type": "array", "items": {"type": "string"}},
+    "address": {"type": "string", "pattern": "^0x[0-9A-F]+$"},
+    "nullableAddress": {"anyOf": [{"$ref": "#/$defs/address"}, {"type": "null"}]},
+    "bytes": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 255}},
+    "context": {
+      "type": "object", "required": ["address", "boundary", "bytes", "bytes_start", "bytes_requested", "instructions", "status"], "additionalProperties": false,
+      "properties": {"address": {"$ref": "#/$defs/address"}, "boundary": {"const": "unverified_candidate"},
+        "bytes": {"$ref": "#/$defs/bytes"}, "bytes_start": {"$ref": "#/$defs/address"}, "bytes_requested": {"const": 48},
+        "status": {"enum": ["partial", "captured"]}, "read_error": {"type": "string"}, "disassembly_error": {"type": "string"},
+        "instructions": {"type": "array", "maxItems": 8, "items": {
+          "type": "object", "required": ["address", "text", "opcode", "parameters", "bytes", "length", "branch", "rip_relative", "classification"], "additionalProperties": false,
+          "properties": {"address": {"$ref": "#/$defs/address"}, "text": {"type": "string"}, "opcode": {"type": "string"},
+            "parameters": {"type": "string"}, "bytes": {"$ref": "#/$defs/bytes"}, "length": {"type": "integer", "minimum": 1},
+            "branch": {"enum": ["unknown", "none", "call", "return", "conditional_jump", "jump"]},
+            "rip_relative": {"enum": ["unknown", "not_applicable", "rip_relative", "not_rip_relative"]},
+            "classification": {"type": "string"}, "parameter_address": {"$ref": "#/$defs/nullableAddress"},
+            "memory_operand_address": {"$ref": "#/$defs/nullableAddress"}}
+        }}
+      }
+    },
+    "aob": {
+      "type": "object",
+      "required": ["id", "script_id", "line", "section", "command", "arguments", "symbol", "scope", "pattern", "syntax_supported", "status", "match_count", "uniqueness", "cross_build_robustness", "matches", "matches_truncated", "hook_candidates", "source_applicability"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string"}, "script_id": {"type": "string"}, "line": {"type": "integer", "minimum": 1},
+        "section": {"$ref": "#/$defs/section"}, "command": {"enum": ["aobscan", "aobscanmodule", "aobscanregion"]},
+        "arguments": {"$ref": "#/$defs/strings"}, "symbol": {"type": "string"}, "scope": {"enum": ["process", "module", "region"]},
+        "pattern": {"type": "string"}, "syntax_supported": {"type": "boolean"},
+        "status": {"enum": ["not_scanned", "unsupported", "unresolved", "unavailable", "error", "invalidated", "observed"]},
+        "match_count": {"type": ["integer", "null"], "minimum": 0},
+        "uniqueness": {"enum": ["unverified", "unique_current_scan", "no_match", "multiple_matches"]},
+        "cross_build_robustness": {"const": "unverified"}, "source_applicability": {"const": "lexical_only"},
+        "matches_truncated": {"type": "boolean"}, "observed_at": {"type": "string", "format": "date-time"}, "message": {"type": "string"},
+        "scan": {"type": "object", "required": ["start", "stop", "protection_flags", "alignment", "method", "stop_semantics", "error_visibility"], "additionalProperties": false,
+          "properties": {"start": {"$ref": "#/$defs/address"}, "stop": {"$ref": "#/$defs/address"},
+            "protection_flags": {"const": "*X*C*W"}, "alignment": {"const": "none"}, "method": {"const": "MemScan/FoundList"},
+            "stop_semantics": {"type": "string"}, "error_visibility": {"enum": ["unknown", "available", "unavailable"]}}},
+        "matches": {"type": "array", "maxItems": 256, "items": {"type": "object", "required": ["signature_anchor"], "additionalProperties": false,
+          "properties": {"signature_anchor": {"$ref": "#/$defs/address"}, "context": {"$ref": "#/$defs/context"}}}},
+        "hook_candidates": {"type": "array", "items": {"type": "object", "required": ["expression", "line", "offset_bytes", "evidence", "hook_address", "note"], "additionalProperties": false,
+          "properties": {"expression": {"type": "string"}, "line": {"type": "integer", "minimum": 1}, "offset_bytes": {"type": "integer"},
+            "evidence": {"const": "static_candidate"}, "hook_address": {"$ref": "#/$defs/nullableAddress"}, "note": {"type": "string"}, "context": {"$ref": "#/$defs/context"}}}}
+      },
+      "allOf": [
+        {"if": {"properties": {"uniqueness": {"const": "unique_current_scan"}}}, "then": {"properties": {"status": {"const": "observed"}, "match_count": {"const": 1}, "matches": {"minItems": 1, "maxItems": 1}, "scan": {"properties": {"error_visibility": {"const": "available"}}}}, "required": ["scan"]}},
+        {"if": {"properties": {"uniqueness": {"const": "no_match"}}}, "then": {"properties": {"status": {"const": "observed"}, "match_count": {"const": 0}}}},
+        {"if": {"properties": {"uniqueness": {"const": "multiple_matches"}}}, "then": {"properties": {"status": {"const": "observed"}, "match_count": {"type": "integer", "minimum": 2}}}},
+        {"if": {"properties": {"status": {"not": {"const": "observed"}}}}, "then": {"properties": {"uniqueness": {"const": "unverified"}, "match_count": {"type": "null"}}}},
+        {"if": {"properties": {"command": {"const": "aobscan"}}}, "then": {"properties": {"scope": {"const": "process"}}}},
+        {"if": {"properties": {"command": {"const": "aobscanmodule"}}}, "then": {"properties": {"scope": {"const": "module"}}}},
+        {"if": {"properties": {"command": {"const": "aobscanregion"}}}, "then": {"properties": {"scope": {"const": "region"}}}}
+      ]
+    }
+  }
+}
