@@ -24,7 +24,7 @@ Cheat Engine 7.7.1, including autorun loading, loaded-table analysis,
 selected-script inspection, AOB validation, report export, and conservative
 Lua/RVA hook inventory without executing inspected Lua.
 
-No GitHub Release has been published for this build.
+A formal GitHub Release is available as `v0.1.3`, including the versioned portable CT and autorun ZIP assets.
 
 ## CT Analyzer 0.1 (offline)
 
