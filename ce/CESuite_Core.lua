@@ -7,7 +7,7 @@ local Disasm=require('disassembly')
 local Export=require('exporter')
 local Life=require('lifecycle')
 local UI=require('ui')
-local Core={identity='CESuiteCore',version='0.1.2',schema_version='0.1',status='stopped',state=Life.new()}
+local Core={identity='CESuiteCore',version='0.1.3',schema_version='0.1',status='stopped',state=Life.new()}
 function Core.analyze(mode)
   return Core.state.run(function()
     local r={schema_version=Core.schema_version,core_version=Core.version,
