@@ -133,6 +133,122 @@ local function context()
   }
 end
 
+test('dependency occurrences retain provenance and unresolved lifecycle',function()
+  local r=report('define(alias,external)\n[ENABLE]\nalloc(buffer,1024,anchor)\nregistersymbol(buffer,shared)\nlabel(returnhere)\nreturnhere:\n[DISABLE]\nunregistersymbol(buffer)\ndealloc(buffer)')
+  local d=r.dependencies
+  eq(#d,13)
+  eq(d[1].name,'alias');eq(d[1].relation,'provides');eq(d[1].section,'common')
+  eq(d[2].name,'external');eq(d[2].relation,'requires')
+  eq(d[3].kind,'resource');eq(d[3].line,3);eq(d[3].section,'enable')
+  eq(d[5].name,'anchor');eq(d[5].relation,'requires')
+  eq(d[6].kind,'symbol');eq(d[7].kind,'registered_symbol')
+  eq(d[10].command,'label');eq(d[10].relation,'provides')
+  eq(d[11].command,'address_label');eq(d[11].relation,'requires')
+  eq(d[12].section,'disable');eq(d[12].line,8)
+  eq(d[13].kind,'resource');eq(d[13].relation,'requires')
+  eq(#r.resources,4);eq(#r.scripts[1].labels,1)
+  for _,v in ipairs(d) do
+    eq(v.source,'lexical');eq(v.status,'unverified');eq(v.script_id,'s')
+  end
+end)
+
+test('dependencies never execute source or interpret Lua comments and expressions',function()
+  local r=report([[// alloc(fake,1)
+{ registersymbol(fake) }
+/* label(fake) */
+{$lua}
+error('INSPECTED LUA MUST NOT RUN')
+alloc(fake,1)
+{$asm}
+alloc(buffer+10,1)
+registersymbol(*)
+unregistersymbol(*)
+dealloc()
+label("quoted")
+DEADBEEF:
+buffer+10:
+define(alias,external+10)
+alloc(buffer)
+aobscan(anchor)
+]])
+  eq(#r.dependencies,1);eq(r.dependencies[1].name,'alias')
+  eq(r.scripts[1].dynamic,true)
+end)
+
+test('AOB global resources and duplicate names stay lexical in every section',function()
+  local r=report('aobscan(anchor,90)\naobscanmodule(modanchor,test.exe,90)\naobscanregion(regionanchor,1000,2000,90)\nglobalalloc(shared,16)\n[DISABLE]\nalloc(buffer,16)\nlabel(shared)')
+  eq(#r.dependencies,8)
+  eq(r.dependencies[1].name,'anchor');eq(r.dependencies[3].name,'regionanchor')
+  eq(r.dependencies[4].kind,'resource');eq(r.dependencies[6].section,'disable')
+  P.inspect({id='second',text='registersymbol(shared)\nregistersymbol(shared)'},r)
+  eq(#r.dependencies,12)
+  eq(r.dependencies[9].script_id,'second');eq(r.dependencies[11].line,2)
+  eq(r.dependencies[9].status,'unverified')
+end)
+
+test('Lua globals produce lexical occurrences with parent lines and sections',function()
+  local r=report('[ENABLE]\n{$lua}\nlocal s=DWG_HC_PLAYER\nassert(DWG_HC_PLAYER.enabled)\nDWG_HC_GODMODE={enabled=true}\nDWG_HC_GODMODE.enabled=false\n[DISABLE]\nDWG_HC_GODMODE=nil\n{$asm}')
+  local d=r.dependencies
+  eq(#d,5);eq(d[1].line,3);eq(d[1].name,'DWG_HC_PLAYER')
+  eq(d[1].relation,'requires');eq(d[3].relation,'provides')
+  eq(d[4].relation,'requires');eq(d[5].relation,'requires')
+  eq(d[5].section,'disable');eq(d[5].line,8)
+  for _,v in ipairs(d) do
+    eq(v.kind,'lua_global');eq(v.source,'lua_lexical');eq(v.status,'unverified');eq(v.script_id,'s')
+  end
+end)
+
+test('Lua strings comments fields and locals do not create global dependencies',function()
+  local r=report([==[{$lua}
+-- DWG_COMMENT={}
+--[=[ DWG_COMMENT2={}
+{$asm}
+[DISABLE]
+]=]
+local text="escaped \" DWG_STRING"
+local long=[===[DWG_LONG
+{$asm}
+[DISABLE]
+]===]
+local DWG_LOCAL, DWG_LOCAL2={},{}
+print(DWG_LOCAL,DWG_LOCAL2)
+local f=function(DWG_PARAM) return DWG_PARAM end
+for DWG_LOOP in pairs({}) do print(DWG_LOOP) end
+local t={DWG_KEY=true, DWG_KEY2=false; DWG_KEY3=true}
+t.DWG_FIELD=true
+t:DWG_METHOD()
+local s=DWG_REAL -- DWG_FAKE
+{$asm}
+]==])
+  eq(#r.dependencies,1);eq(r.dependencies[1].name,'DWG_REAL')
+  eq(r.dependencies[1].section,'common');eq(r.dependencies[1].line,19)
+end)
+
+test('Lua comparisons and self reads stay requirements and never execute',function()
+  local r=report([=[{$lua}
+error('MUST NOT EXECUTE')
+DWG_STATE=DWG_STATE or {}
+assert(DWG_STATE==nil or DWG_OTHER~=nil)
+{$asm}
+]=])
+  eq(#r.dependencies,4);eq(r.dependencies[1].relation,'provides')
+  for i=2,4 do eq(r.dependencies[i].relation,'requires') end
+  eq(_G.DWG_STATE,nil)
+end)
+
+test('Lua long literals unfinished comments and chunk boundaries stay conservative',function()
+  local r=report('{$lua}\nlocal x="DWG_FAKE"; DWG_FIRST={}\n{$asm}\n[DISABLE]\n{$lua}\nlocal s=DWG_FIRST\n--[==[ DWG_NEVER={}\nDWG_NEVER2={}\n')
+  eq(#r.dependencies,2);eq(r.dependencies[1].relation,'provides')
+  eq(r.dependencies[2].section,'disable');eq(r.dependencies[2].line,6)
+end)
+
+test('Lua named global functions and AA-looking literals remain lexical',function()
+  local r=report('[ENABLE]\n{$lua}\nfunction DWG_HELPER() return DWG_PLAYER end\nlocal s=[=[\n{$lua}\n[DISABLE]\n]=]\nDWG_LAST={}\n{$asm}')
+  eq(#r.dependencies,3);eq(r.dependencies[1].relation,'provides')
+  eq(r.dependencies[2].relation,'requires');eq(r.dependencies[3].name,'DWG_LAST')
+  eq(r.dependencies[3].section,'enable');eq(r.dependencies[3].line,8)
+end)
+
 test('AA numbers are hex, Lua is decimal',function()
   eq(U.number('17'),23)
   eq(U.number('#17'),17)
@@ -847,6 +963,29 @@ test('bundle installs once and cleans only its own menu; export is fresh',functi
   core.export(
     'ce/tests/generated-observed.json'
   )
+
+  getAddressList=function()
+    return {Count=1,LoadedTableVersion=45,getMemoryRecord=function()
+      return {ID=2,Type=11,Description='Dependency fixture',OffsetCount=0,Script=[[
+[ENABLE]
+alloc(buffer,16)
+registersymbol(buffer)
+{$lua}
+error('SOURCE MUST NEVER EXECUTE')
+local s=DWG_HC_PLAYER
+DWG_HC_GODMODE={enabled=true}
+local base = getAddress('test.exe')
+local source = base + 0x10
+local expected = {0x90}
+local original = {0x90}
+{$asm}
+[DISABLE]
+unregistersymbol(buffer)
+dealloc(buffer)
+]]}
+    end}
+  end
+  core.export('ce/tests/generated-dependencies.json')
 
   core.shutdown()
 

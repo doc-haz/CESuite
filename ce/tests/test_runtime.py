@@ -22,7 +22,7 @@ class RuntimeContractTests(unittest.TestCase):
 
     def test_schema_and_real_lua_serialization(self):
         Draft202012Validator.check_schema(self.schema)
-        for name in ['generated-report.json', 'generated-observed.json']:
+        for name in ['generated-report.json', 'generated-observed.json', 'generated-dependencies.json']:
             report = json.loads((ROOT / 'ce/tests' / name).read_text(encoding='utf-8'))
             self.validator.validate(report)
 
@@ -38,6 +38,41 @@ class RuntimeContractTests(unittest.TestCase):
             changed['aobs'][0][field] = value
             with self.assertRaises(ValidationError):
                 self.validator.validate(changed)
+
+    def test_dependencies_are_required_only_for_new_core_and_remain_unverified(self):
+        report = json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+        self.validator.validate(report)
+        self.assertGreater(len(report['dependencies']), 0)
+        missing = copy.deepcopy(report)
+        del missing['dependencies']
+        with self.assertRaises(ValidationError):
+            self.validator.validate(missing)
+        for version in ['0.1.0', '0.1.1', '0.1.2', '0.1.3']:
+            missing['core_version'] = version
+            self.validator.validate(missing)
+        for field, value in [('status', 'verified'), ('source', 'runtime'),
+                             ('relation', 'resolved'), ('line', 0), ('extra', True)]:
+            changed = copy.deepcopy(report)
+            changed['dependencies'][0][field] = value
+            with self.assertRaises(ValidationError):
+                self.validator.validate(changed)
+
+    def test_lua_dependency_provenance_contract(self):
+        report = json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+        rows = [d for d in report['dependencies'] if d['source'] == 'lua_lexical']
+        self.assertEqual([(d['name'], d['relation']) for d in rows],
+                         [('DWG_HC_PLAYER', 'requires'), ('DWG_HC_GODMODE', 'provides')])
+        for row in rows:
+            self.assertEqual(row['status'], 'unverified')
+            self.assertEqual(row['section'], 'enable')
+            for field, value in [('status', 'verified'), ('source', 'lexical'),
+                                 ('kind', 'symbol'), ('name', 'OTHER_GLOBAL'),
+                                 ('command', 'alloc'), ('relation', 'resolved')]:
+                changed = copy.deepcopy(report)
+                index = report['dependencies'].index(row)
+                changed['dependencies'][index][field] = value
+                with self.assertRaises(ValidationError):
+                    self.validator.validate(changed)
 
     def test_package_is_deterministic_and_self_contained(self):
         with tempfile.TemporaryDirectory() as directory:

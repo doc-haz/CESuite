@@ -7,13 +7,14 @@ local Disasm=require('disassembly')
 local Export=require('exporter')
 local Life=require('lifecycle')
 local UI=require('ui')
-local Core={identity='CESuiteCore',version='0.1.3',schema_version='0.1',status='stopped',state=Life.new()}
+local Core={identity='CESuiteCore',version='0.1.4',schema_version='0.1',status='stopped',state=Life.new()}
 function Core.analyze(mode)
   return Core.state.run(function()
     local r={schema_version=Core.schema_version,core_version=Core.version,
       generated_at=os.date('!%Y-%m-%dT%H:%M:%SZ'),mode=mode,observation_only=true,
-      records=U.array(),scripts=U.array(),aobs=U.array(),resources=U.array(),diagnostics=U.array(),
-      limitations=U.array({'Not an atomic process snapshot; target memory and modules may change during collection.',
+      records=U.array(),scripts=U.array(),aobs=U.array(),resources=U.array(),dependencies=U.array(),diagnostics=U.array(),
+      limitations=U.array({'Dependencies are partial lexical occurrences, not resolved cross-script links or runtime availability; provides/requires remain unverified.',
+        'Not an atomic process snapshot; target memory and modules may change during collection.',
         'Uniqueness applies only to CE-readable memory in this scan, not other builds or hook compatibility.',
         'No source scripts, symbol callbacks, includes or macros are executed. Computed expressions can remain unresolved.',
         'Up to 256 addresses per AOB; context for first 8 matches and first 8 resolved hook candidates.',

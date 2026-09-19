@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.4 - First lexical dependency inventory
+
+- Extend embedded Lua inventory with conservative DWG_* global occurrences,
+  source lua_lexical and status unverified; exclude strings/comments and explicit
+  locals, retain parent source lines and ENABLE/DISABLE sections.
+- Add partial, unverified provides/requires occurrences with script, line, section
+  and command provenance; no source execution or cross-script resolution.
+- Preserve existing resources, labels, defines and diagnostics.
+- Extend runtime schema 0.1 with dependencies required for Core 0.1.4; retain older
+  reports and describe the existing 0.1.3 Lua/RVA hook resource shape.
+- Add synthetic parser, exported JSON contract and distribution regression tests.
+- Live CE integration for this increment remains unverified.
+- See docs/dependencies-v0.1.4.md for the deliberately limited detection rules.
+
 ## 0.1.3 - Lua/RVA hook inventory
 
 - Add conservative lexical detection of Lua static RVA hooks without executing
