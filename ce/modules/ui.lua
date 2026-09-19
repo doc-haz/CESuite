@@ -8,6 +8,10 @@ function M.showReport(Core,api,report)
     Core.viewer.Width=900
     Core.viewer.Height=650
 
+    Core.viewer.OnClose=function()
+      return caHide
+    end
+
     Core.memo=api.createMemo(Core.viewer)
     Core.memo.Parent=Core.viewer
     Core.memo.Align='alClient'
