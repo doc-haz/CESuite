@@ -6,7 +6,8 @@ local AOB=require('aob')
 local Disasm=require('disassembly')
 local Export=require('exporter')
 local Life=require('lifecycle')
-local Core={version='0.1.0',schema_version='0.1',state=Life.new()}
+local UI=require('ui')
+local Core={identity='CESuiteCore',version='0.1.1',schema_version='0.1',status='stopped',state=Life.new()}
 function Core.analyze(mode)
   return Core.state.run(function()
     local r={schema_version=Core.schema_version,core_version=Core.version,
@@ -32,50 +33,15 @@ function Core.analyze(mode)
   end)
 end
 function Core.export(path) return Export.write(Core.analyze('export'),path) end
-function Core.shutdown() Core.state.shutdown();Core.viewer=nil;Core.memo=nil end
-function Core.showReport(report)
-  if not Core.viewer then
-    Core.viewer=Core.state.own(api.createForm(false))
-    Core.viewer.Caption='CESuite observation report'
-    Core.viewer.Width=900;Core.viewer.Height=650
-    Core.memo=api.createMemo(Core.viewer)
-    Core.memo.Parent=Core.viewer;Core.memo.Align='alClient'
-    Core.memo.ReadOnly=true;Core.memo.ScrollBars='ssBoth';Core.memo.WordWrap=false
-  end
-  Core.memo.Lines.Text=Export.encode(report)
-  Core.viewer.show()
-end
+function Core.shutdown() Core.state.shutdown();Core.viewer=nil;Core.memo=nil;Core.status='stopped' end
+function Core.showReport(report) return UI.showReport(Core,api,report) end
 function Core.install()
-  local parent=api.getMainForm().Menu
-  local menu=Core.state.own(api.createMenuItem(parent));menu.Caption='CESuite'
-  parent.Items.add(menu)
-  local function command(caption,callback)
-    local item=api.createMenuItem(menu);item.Caption=caption
-    item.OnClick=function()
-      local ok,result=pcall(callback)
-      if not ok then api.showMessage('CESuite: '..tostring(result)) end
-    end
-    menu.add(item)
-  end
-  local function inspect(mode)
-    local r=Core.analyze(mode)
-    Core.showReport(r)
-  end
-  command('Analyze Current Process',function() inspect('process') end)
-  command('Analyze Loaded Table',function() inspect('table') end)
-  command('Validate AOBs',function() inspect('validate') end)
-  command('Inspect Selected Script',function() inspect('selected') end)
-  command('Export ChatGPT Report',function()
-    local dialog=api.createSaveDialog(api.getMainForm())
-    local ok,err=pcall(function()
-      dialog.FileName='CESuite_Runtime_Report.json';dialog.DefaultExt='json';dialog.Filter='JSON report|*.json'
-      dialog.Options='[ofOverwritePrompt,ofPathMustExist]'
-      if dialog.execute() then Core.export(dialog.FileName);api.showMessage('CESuite report saved: '..dialog.FileName) end
-    end)
-    dialog.destroy()
-    if not ok then error(err) end
-  end)
-  command('Remove CESuite Menu',function() Core.shutdown() end)
+  if Core.status=='ready' then return Core end
+  assert(Core.status~='loading','CESuite menu is already loading')
+  Core.status='loading'
+  local ok,err=pcall(UI.install,Core,api)
+  if not ok then Core.shutdown();error(err) end
+  Core.status='ready'
   return Core
 end
 return Core

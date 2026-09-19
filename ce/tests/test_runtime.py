@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import zipfile
 import xml.etree.ElementTree as ET
 
 from jsonschema import Draft202012Validator, ValidationError
@@ -28,6 +29,9 @@ class RuntimeContractTests(unittest.TestCase):
     def test_reject_false_uniqueness_and_scope_changes(self):
         report = json.loads((ROOT / 'ce/tests/generated-observed.json').read_text())
         self.validator.validate(report)
+        legacy = copy.deepcopy(report)
+        legacy['core_version'] = '0.1.0'
+        self.validator.validate(legacy)
         for field, value in [('match_count', 2), ('status', 'error'), ('scope', 'process'),
                              ('cross_build_robustness', 'verified')]:
             changed = copy.deepcopy(report)
@@ -48,11 +52,30 @@ class RuntimeContractTests(unittest.TestCase):
     def test_runtime_has_no_target_write_or_network_calls(self):
         # Defense-in-depth allowlist regression, not a formal security proof.
         import re
-        source = builder.bundle()
+        source = builder.bundle() + '\n'.join(builder.autorun_files().values())
         for forbidden in ['autoAssemble', 'autoAssembleCheck', 'writeBytes', 'writeInteger',
                           'allocateMemory', 'deAlloc', 'openProcess', 'getInternet',
                           'getAddress', 'getAddressSafe', 'loadstring', 'shellExecute']:
             self.assertIsNone(re.search(r'\b' + forbidden + r'\s*\(', source), forbidden)
+
+    def test_autorun_structure_content_and_reproducibility(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            builder.build(output)
+            name = f'CESuite_Autorun_v{builder.version()}.zip'
+            original = (output / name).read_bytes()
+            builder.build(output)
+            self.assertEqual(original, (output / name).read_bytes())
+            expected = {'CESuite_Autorun.lua', 'cesuite/core.lua', 'cesuite/bootstrap.lua'}
+            expected.update('cesuite/' + p.name for p in (ROOT / 'ce/modules').glob('*.lua'))
+            with zipfile.ZipFile(output / name) as archive:
+                self.assertEqual(set(archive.namelist()), expected)
+                self.assertEqual(len(archive.namelist()), len(expected))
+                for path, source in builder.autorun_files().items():
+                    self.assertEqual(archive.read(path).decode('utf-8'), source)
+                    self.assertNotIn('@VERSION@', source)
+            self.assertEqual((output / 'CESuite_Core.CT').read_bytes(),
+                             (output / f'CESuite_Core_v{builder.version()}.CT').read_bytes())
 
 
 if __name__ == '__main__':

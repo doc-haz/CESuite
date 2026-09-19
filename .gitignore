@@ -18,5 +18,6 @@ build/
 *.so
 *.dylib
 *.zip
+releases/CESuite_Core_v*.CT
 *.7z
 ce/tests/generated-*.json

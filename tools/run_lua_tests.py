@@ -7,12 +7,16 @@ The library architecture must match Python. No CE APIs or target access are used
 import argparse
 import ctypes
 import os
+import tempfile
+import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
+from build_ce import build, version
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(library):
+def run(library, script='ce/tests/runtime_spec.lua', package_path=None):
     lib = ctypes.CDLL(str(library))
     lib.luaL_newstate.restype = ctypes.c_void_p
     lib.luaL_openlibs.argtypes = [ctypes.c_void_p]
@@ -21,6 +25,8 @@ def run(library):
     lib.lua_tolstring.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_size_t)]
     lib.lua_tolstring.restype = ctypes.c_char_p
     lib.lua_close.argtypes = [ctypes.c_void_p]
+    lib.lua_pushstring.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    lib.lua_setglobal.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
     state = lib.luaL_newstate()
     if not state:
         raise RuntimeError('Cannot create Lua state')
@@ -28,7 +34,10 @@ def run(library):
     try:
         os.chdir(ROOT)
         lib.luaL_openlibs(state)
-        status = lib.luaL_loadfilex(state, b'ce/tests/runtime_spec.lua', None)
+        if package_path is not None:
+            lib.lua_pushstring(state, str(package_path).encode('utf-8'))
+            lib.lua_setglobal(state, b'CESUITE_TEST_PACKAGE')
+        status = lib.luaL_loadfilex(state, script.encode('utf-8'), None)
         if not status:
             status = lib.lua_pcallk(state, 0, 0, 0, 0, None)
         if status:
@@ -41,4 +50,12 @@ def run(library):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--library', type=Path, required=True)
-    run(parser.parse_args().library)
+    library = parser.parse_args().library.resolve()
+    run(library)
+    with tempfile.TemporaryDirectory(prefix='CESuite test ') as directory:
+        output = Path(directory)
+        build(output)
+        with zipfile.ZipFile(output / f'CESuite_Autorun_v{version()}.zip') as archive:
+            archive.extractall(output / 'autorun')
+        (output / 'portable.lua').write_text(ET.parse(output / f'CESuite_Core_v{version()}.CT').getroot().findtext('LuaScript'), encoding='utf-8')
+        run(library, 'ce/tests/distribution_spec.lua', output)

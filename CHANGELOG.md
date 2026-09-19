@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.1 - autorun distribution (pre-release, live CE validation pending)
+
+- Add permanent `CESuite_Autorun.lua` and modular `cesuite/` ZIP packaging using
+  `getAutorunPath()` and explicit absolute-path loading in private environments.
+- Share singleton/reentrant-load guards between portable and autorun modes;
+  preserve existing instance/report state and guard repeated menu installation.
+- Add version/status/distribution exposure and About menu; handle failed module
+  loading and partial menu creation with cleanup and retry support.
+- Generate deterministic versioned CT/ZIP artifacts while retaining existing
+  portable CT/Lua paths. No network, credentials or Release publication.
+- Accept Core 0.1.1 in the unchanged 0.1 report format, retaining 0.1.0 reports.
+- Document exact CE 7.7.1 installation paths, local permissions, upgrade/removal
+  and remaining live validation. Add extracted-package and mixed-load tests.
+
 ## Core Runtime 0.1.0 — 2026-09-18
 
 - Add modular local/offline CE process, CT/AA/Lua, AOB and disassembly observations.

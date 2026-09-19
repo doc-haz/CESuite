@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {"const": "0.1"},
-    "core_version": {"const": "0.1.0"},
+    "core_version": {"enum": ["0.1.0", "0.1.1"]},
     "ce_version": {"type": "string"},
     "generated_at": {"type": "string", "format": "date-time"},
     "completed_at": {"type": "string", "format": "date-time"},

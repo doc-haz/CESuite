@@ -158,14 +158,14 @@ test('repeated symbols and defines do not invent a hook',function()
   local r=report('aobscan(p,AA BB)\naobscan(p,CC DD)\np+10:\njmp x\ndefine(a,10)\ndefine(a,20)\ndefine(a,30)')
   A.validate(mock({'1000'}),r,context);eq(#r.aobs[1].hook_candidates,0);eq(r.scripts[1].defines.a,false)
 end)
-test('bundle installs, replaces and cleans only its own menu; export is fresh',function()
+test('bundle installs once and cleans only its own menu; export is fresh',function()
   local installed,destroyed=0,0
   getMainForm=function() return {Menu={Items={add=function() installed=installed+1 end}}} end
   createMenuItem=function() return {add=function() end,destroy=function() destroyed=destroyed+1 end} end
   getOpenedProcessID=function() return 0 end
   getCEVersion=function() return 7.7 end
   local core=dofile('releases/CESuite_Core.lua');eq(installed,1)
-  core=dofile('releases/CESuite_Core.lua');eq(installed,2);eq(destroyed,1)
+  local again=dofile('releases/CESuite_Core.lua');eq(again,core);eq(installed,1);eq(destroyed,0)
   local r=core.analyze('export');eq(r.target.attached,false)
   core.export('ce/tests/generated-report.json')
   local fake=mock({'1010'})
@@ -182,6 +182,6 @@ test('bundle installs, replaces and cleans only its own menu; export is fresh',f
     getLastDisassembleData=function() return {opcode='nop',bytes={0x90},isCall=false,isJump=false,isRet=false} end,destroy=function() end} end
   r=core.analyze('export');eq(r.aobs[1].uniqueness,'unique_current_scan')
   core.export('ce/tests/generated-observed.json')
-  core.shutdown();eq(destroyed,2)
+  core.shutdown();eq(destroyed,1)
 end)
 print(string.format('%d Lua tests passed (synthetic CE API mocks; no live CE validation)',tests))

@@ -8,6 +8,11 @@ JSON file. Collected scripts are data and are never executed by the analyzer.
 
 ## Use the single CT
 
+For permanent startup loading, use the separate autorun ZIP described in
+[installation.md](installation.md). Version 0.1.1 shares a singleton guard between
+both modes; repeated loads reuse the existing Core and menu. This is a pre-release
+build pending live autorun validation.
+
 1. Open `releases/CESuite_Core.CT` in CE and allow **this core's** table Lua to run.
    The CT contains no MemoryRecords and does not attach or scan on load.
 2. Open the CT you want to inspect, then attach CE to the process yourself.
@@ -27,6 +32,7 @@ JSON file. Collected scripts are data and are never executed by the analyzer.
      **fresh full snapshot and re-scan** before writing. Never exports an old scan
      against a newly selected process/table.
    - **Remove CESuite Menu**: destroy only CESuite's owned menu/viewer objects.
+   - **About CESuite**: show version, status and initial distribution mode.
 
 Analysis commands show a read-only JSON viewer. The most recent object is also
 available as `CESuiteCore.last_report`. Developer calls:
@@ -123,7 +129,7 @@ version has yet been certified through a live process session**.
 
 ## Build and tests
 
-Python 3.10+ builds the release without dependencies:
+Python 3.10+ builds both distribution modes without dependencies:
 
 ```text
 python tools/build_ce.py
@@ -133,6 +139,8 @@ Lua modules under `ce/modules/` use a private in-bundle loader, not global
 `package.preload`. The generated CT and Lua carry every module and require no repo
 at runtime. The separate Lua artifact is an alternative loader for an existing CT.
 The build is deterministic, UTF-8 and XML-escaped; it has no timestamp-dependent data.
+The ZIP carries an absolute-path loader and the same modules; see
+[installation.md](installation.md) for artifact names and installation structure.
 
 ```powershell
 python -m pip install -r analyzer/requirements-dev.txt
