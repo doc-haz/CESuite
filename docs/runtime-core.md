@@ -9,9 +9,11 @@ JSON file. Collected scripts are data and are never executed by the analyzer.
 ## Use the single CT
 
 For permanent startup loading, use the separate autorun ZIP described in
-[installation.md](installation.md). Version 0.1.1 shares a singleton guard between
-both modes; repeated loads reuse the existing Core and menu. This is a pre-release
-build pending live autorun validation.
+[installation.md](installation.md). Version 0.1.3 shares a singleton guard between
+both modes; repeated loads reuse the existing Core and menu. CESuite 0.1.3 has been
+live-validated on Cheat Engine 7.7.1, including autorun loading, loaded-table
+analysis, selected-script inspection, AOB validation, report export, and
+conservative Lua/RVA hook inventory.
 
 1. Open `releases/CESuite_Core.CT` in CE and allow **this core's** table Lua to run.
    The CT contains no MemoryRecords and does not attach or scan on load.
@@ -124,8 +126,8 @@ API references consulted:
 
 The installed CE documentation also exposes `MemScan.ErrorString` (not present in
 all older online documentation). API access is guarded and missing capabilities
-produce unknown/error states. CE 7.7+ is the initial intended test target; **no CE
-version has yet been certified through a live process session**.
+produce unknown/error states. CE 7.7+ is the intended test target. CESuite 0.1.3 has been live-validated on
+Cheat Engine 7.7.1 in an x64 process session.
 
 ## Build and tests
 
@@ -157,7 +159,7 @@ Alternatively run `lua5.3 ce/tests/runtime_spec.lua` from the repo root. Tests p
 ignored synthetic JSON fixtures used by the schema tests. They verify actual Lua
 serialization and the generated bundle with CE API **mocks**, not CE integration.
 
-Before calling this runtime-validated, manually test both x86/x64 targets using an
+For broader runtime certification, manually test both x86/x64 targets using an
 owned synthetic application: no attachment; attachment; module enumeration; 0/1/N
 matches in all scopes; region endpoints; unreadable pages; active records; duplicate
 IDs; selected script; table switching; unavailable APIs; export errors; menu reinstall
