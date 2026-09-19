@@ -34,12 +34,29 @@ test('autorun then CT then autorun preserves instance, report and one menu',func
   local core=assert(dofile(autorun));eq(core.status,'ready');eq(core.distribution,'autorun')
   core.last_report={sentinel=true}
   eq(dofile(portable),core);eq(dofile(autorun),core);eq(core.last_report.sentinel,true)
-  eq(menus.Count,1);eq(created,8)
+  eq(menus.Count,1);eq(created,9)
   eq(core.install(),core);eq(menus.Count,1)
 end)
 test('CT then autorun preserves portable instance',function()
   local core=assert(dofile(portable));eq(dofile(autorun),core);eq(menus.Count,1)
   eq(core.distribution,'portable')
+end)
+
+test('summary menu refreshes a table analysis in both distributions',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    local core=assert(dofile(path))
+    local shown,calls=nil,0
+    core.analyze=function(mode)
+      eq(mode,'table');calls=calls+1
+      return {dependency_summary={{name='GAME_STATE',status='unverified'}}}
+    end
+    core.showReport=function(report) shown=report end
+    eq(menus[0].children[8].Caption,'Dependency Summary')
+    menus[0].children[8].OnClick()
+    eq(calls,1);eq(shown.dependency_summary[1].name,'GAME_STATE')
+    eq(shown.dependency_summary[1].status,'unverified');eq(#messages,0)
+  end
 end)
 test('remove and reload restores one menu and exposes status',function()
   local core=assert(dofile(autorun))

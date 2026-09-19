@@ -91,6 +91,6 @@ objects, not a running Cheat Engine instance.
 Still required in live CE: cold startup without a CT; About/version/status; loading
 the portable CT afterwards with exactly one menu; table switching; removal and
 restart; and a real process/table analysis, AOB validation and JSON export. Test
-Dawnwalker GOG 1.0.5 only against the actual installed build; static packaging tests
+each application only against its actual installed build; static packaging tests
 do not establish runtime or hook compatibility. Keep the broader x86/x64 runtime
 validation checklist in runtime-core.md before declaring a stable Release.

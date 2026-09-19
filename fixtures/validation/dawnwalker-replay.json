@@ -1,0 +1,14 @@
+{
+  "case": "Dawnwalker cached report replay",
+  "baseline_commit": "34efbb696872d734064c1dfe6a105a49880da003",
+  "input_sha256": "d2664fee953bc1953dad280119fcd95bd3ddd5b83d2647e421f87d26708007fa",
+  "counts": {
+    "occurrences": 117,
+    "provides": 21,
+    "requires": 96,
+    "symbols": 21,
+    "resources": 16,
+    "groups": 42,
+    "locations": 87
+  }
+}

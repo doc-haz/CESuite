@@ -133,6 +133,65 @@ local function context()
   }
 end
 
+test('summary collapses same-line locations but preserves every AA and Lua occurrence',function()
+  local S=require('dependencies')
+  local r=report('registersymbol(shared,shared)\n{$lua}\nprint(GAME_STATE,GAME_STATE)\n{$asm}')
+  local before=E.encode(r)
+  local g=S.summarize(r.dependencies)
+  eq(#r.dependencies,6);eq(#g,3)
+  for _,v in ipairs(g) do
+    eq(v.occurrence_count,2);eq(v.location_count,1);eq(v.status,'unverified')
+    eq(v.locations[1].occurrence_count,2);eq(#v.locations[1].occurrence_indices,2)
+  end
+  eq(g[1].locations[1].occurrence_indices[1],1)
+  eq(g[1].locations[1].occurrence_indices[2],3)
+  eq(E.encode(r),before);eq(E.encode(S.summarize(r.dependencies)),E.encode(g))
+end)
+
+test('summary preserves cross-script provenance sections and both relations',function()
+  local S=require('dependencies')
+  local r=report('[ENABLE]\n{$lua}\nGAME_STATE=GAME_STATE or {}\n[DISABLE]\nGAME_STATE=nil\n{$asm}')
+  P.inspect({id='second:script',text='[ENABLE]\n{$lua}\nprint(GAME_STATE)\n{$asm}'},r)
+  local g=S.summarize(r.dependencies)
+  eq(#g,2);eq(g[1].relation,'provides');eq(g[1].occurrence_count,1)
+  eq(g[2].relation,'requires');eq(g[2].occurrence_count,3);eq(g[2].location_count,3)
+  eq(table.concat(g[2].script_ids,','),'s,second:script')
+  eq(table.concat(g[2].sections,','),'enable,disable')
+  eq(g[2].locations[1].line,3);eq(g[2].locations[2].section,'disable')
+  eq(g[2].locations[3].script_id,'second:script')
+  eq(_G.GAME_STATE,nil)
+end)
+
+test('summary does not conflate namespaces case commands or separate lines',function()
+  local S=require('dependencies')
+  local r=report('alloc(GAME_STATE,16)\nlabel(GAME_STATE)\nlabel(GAME_STATE)\nlabel(game_state)\n{$lua}\nGAME_STATE={}\n{$asm}')
+  local g=S.summarize(r.dependencies)
+  eq(#g,4);eq(g[1].kind,'resource');eq(g[2].kind,'symbol')
+  eq(g[2].occurrence_count,3);eq(g[2].location_count,3)
+  eq(g[3].name,'game_state');eq(g[4].kind,'lua_global')
+  local copy={}
+  for k,v in pairs(r.dependencies[2]) do copy[k]=v end
+  copy.command='label';r.dependencies[#r.dependencies+1]=copy
+  eq(S.summarize(r.dependencies)[2].location_count,4)
+end)
+
+test('summary is empty for absent dependencies and excluded false positives',function()
+  local S=require('dependencies')
+  eq(E.encode(S.summarize(nil)),'[]')
+  local r=report([=[{$lua}
+error('MUST NEVER EXECUTE')
+local TEST_LOCAL={};print(TEST_LOCAL)
+local t={TEST_KEY=true};t.TEST_FIELD=true
+local s="TEST_STRING"
+-- TEST_COMMENT={}
+{$asm}
+label("quoted")
+label(DEADBEEF)
+registersymbol(*)
+]=])
+  eq(E.encode(S.summarize(r.dependencies)),'[]')
+end)
+
 test('dependency occurrences retain provenance and unresolved lifecycle',function()
   local r=report('define(alias,external)\n[ENABLE]\nalloc(buffer,1024,anchor)\nregistersymbol(buffer,shared)\nlabel(returnhere)\nreturnhere:\n[DISABLE]\nunregistersymbol(buffer)\ndealloc(buffer)')
   local d=r.dependencies
@@ -171,7 +230,11 @@ define(alias,external+10)
 alloc(buffer)
 aobscan(anchor)
 ]])
-  eq(#r.dependencies,1);eq(r.dependencies[1].name,'alias')
+  -- Unknown Lua call/root names are now generic requirements, never AA resources.
+  eq(#r.dependencies,3);eq(r.dependencies[1].name,'alloc')
+  eq(r.dependencies[1].kind,'lua_global');eq(r.dependencies[1].relation,'requires')
+  eq(r.dependencies[2].name,'fake');eq(r.dependencies[3].name,'alias')
+  for _,resource in ipairs(r.resources) do assert(resource.command~='lua_rva_hook') end
   eq(r.scripts[1].dynamic,true)
 end)
 
@@ -186,10 +249,101 @@ test('AOB global resources and duplicate names stay lexical in every section',fu
   eq(r.dependencies[9].status,'unverified')
 end)
 
+test('generic globals provide without a naming prefix or capitalization rule',function()
+  local r=report('{$lua}\nGAME_STATE={}\nmodPlayer=1\n_privateFlag=false\nfunction customHelper() end\n{$asm}')
+  eq(#r.dependencies,4)
+  local names={'GAME_STATE','modPlayer','_privateFlag','customHelper'}
+  for i,d in ipairs(r.dependencies) do
+    eq(d.name,names[i]);eq(d.relation,'provides')
+    eq(d.source,'lua_lexical');eq(d.status,'unverified')
+  end
+end)
+
+test('generic reads unknown calls and member roots remain unverified requirements',function()
+  local r=report('{$lua}\nlocal x=MOD_PLAYER\nprint(modPlayer.value)\ncustomHelper(TEST_GLOBAL)\n{$asm}')
+  local names={'MOD_PLAYER','modPlayer','customHelper','TEST_GLOBAL'}
+  eq(#r.dependencies,#names)
+  for i,d in ipairs(r.dependencies) do
+    eq(d.name,names[i]);eq(d.relation,'requires');eq(d.status,'unverified')
+  end
+end)
+
+test('locals parameters loop variables and implicit method self are excluded',function()
+  local r=report([=[{$lua}
+local first,second={},{}
+local function helper(param) return param,first,second end
+for index=1,10 do helper(index) end
+for key,value in pairs({}) do helper(key,value) end
+local object={}
+function object:method(argValue) self.value=argValue end
+local constant <const> = 1
+print(constant)
+{$asm}]=])
+  eq(#r.dependencies,0)
+end)
+
+test('Lua keywords and standard environment names are excluded without execution',function()
+  local names=require('luanames')
+  local text={'{$lua}',"error('MUST NOT EXECUTE')"}
+  for name in pairs(names.builtins) do text[#text+1]='print('..name..')' end
+  text[#text+1]='if true and not false then repeat break until nil else return end'
+  text[#text+1]='{$asm}'
+  eq(#report(table.concat(text,'\n')).dependencies,0)
+end)
+
+test('known CE globals APIs and constants are excluded by exact spelling',function()
+  local r=report([=[{$lua}
+if syntaxcheck then return end
+local address=getAddressSafe(process)
+local bytes=readBytes(address,16,true)
+local scan=AOBScan('90')
+pause();unpause();speedhack_setSpeed(1)
+local record=memrec or getAddressList().SelectedRecord
+local t=createTimer(nil);t.Enabled=false
+print(MainForm,AddressList,vtByte,caHide,mrOK,mbOK,alClient,VK_F1)
+getCustomValue(TEST_GLOBAL)
+{$asm}]=])
+  eq(#r.dependencies,2);eq(r.dependencies[1].name,'getCustomValue')
+  eq(r.dependencies[2].name,'TEST_GLOBAL')
+end)
+
+test('generic comments and strings stay masked while real names are retained',function()
+  local r=report([==[{$lua}
+-- COMMENT_GLOBAL={}
+--[=[ LONG_COMMENT_GLOBAL ]=]
+local s="STRING_GLOBAL"
+local t=[=[LONG_STRING_GLOBAL]=]
+print(TEST_GLOBAL)
+{$asm}]==])
+  eq(#r.dependencies,1);eq(r.dependencies[1].name,'TEST_GLOBAL')
+end)
+
+test('numerals labels and field names do not become generic globals',function()
+  local r=report([=[{$lua}
+local n={0xFF,0x1.Ap+2,0x.8p1,0x.8,2e10,.5e-2,17.25}
+::retryLabel::
+if false then goto retryLabel end
+local t={key=1};t.field=2
+print('prefix'..GAME_STATE..MOD_PLAYER)
+{$asm}]=])
+  eq(#r.dependencies,2);eq(r.dependencies[1].name,'GAME_STATE')
+  eq(r.dependencies[2].name,'MOD_PLAYER')
+end)
+
+test('ambient globals do not change lexical dependency results',function()
+  local original=rawget(_G,'TEST_AMBIENT')
+  local text='{$lua}\nprint(TEST_AMBIENT)\n{$asm}'
+  local before=E.encode(report(text).dependencies)
+  _G.TEST_AMBIENT=function() error('must not call ambient values') end
+  local after=E.encode(report(text).dependencies)
+  _G.TEST_AMBIENT=original
+  eq(before,after);eq(#report(text).dependencies,1)
+end)
+
 test('Lua globals produce lexical occurrences with parent lines and sections',function()
-  local r=report('[ENABLE]\n{$lua}\nlocal s=DWG_HC_PLAYER\nassert(DWG_HC_PLAYER.enabled)\nDWG_HC_GODMODE={enabled=true}\nDWG_HC_GODMODE.enabled=false\n[DISABLE]\nDWG_HC_GODMODE=nil\n{$asm}')
+  local r=report('[ENABLE]\n{$lua}\nlocal s=MOD_PLAYER\nassert(MOD_PLAYER.enabled)\nMOD_GODMODE={enabled=true}\nMOD_GODMODE.enabled=false\n[DISABLE]\nMOD_GODMODE=nil\n{$asm}')
   local d=r.dependencies
-  eq(#d,5);eq(d[1].line,3);eq(d[1].name,'DWG_HC_PLAYER')
+  eq(#d,5);eq(d[1].line,3);eq(d[1].name,'MOD_PLAYER')
   eq(d[1].relation,'requires');eq(d[3].relation,'provides')
   eq(d[4].relation,'requires');eq(d[5].relation,'requires')
   eq(d[5].section,'disable');eq(d[5].line,8)
@@ -200,52 +354,52 @@ end)
 
 test('Lua strings comments fields and locals do not create global dependencies',function()
   local r=report([==[{$lua}
--- DWG_COMMENT={}
---[=[ DWG_COMMENT2={}
+-- TEST_COMMENT={}
+--[=[ TEST_COMMENT2={}
 {$asm}
 [DISABLE]
 ]=]
-local text="escaped \" DWG_STRING"
-local long=[===[DWG_LONG
+local text="escaped \" TEST_STRING"
+local long=[===[TEST_LONG
 {$asm}
 [DISABLE]
 ]===]
-local DWG_LOCAL, DWG_LOCAL2={},{}
-print(DWG_LOCAL,DWG_LOCAL2)
-local f=function(DWG_PARAM) return DWG_PARAM end
-for DWG_LOOP in pairs({}) do print(DWG_LOOP) end
-local t={DWG_KEY=true, DWG_KEY2=false; DWG_KEY3=true}
-t.DWG_FIELD=true
-t:DWG_METHOD()
-local s=DWG_REAL -- DWG_FAKE
+local TEST_LOCAL, TEST_LOCAL2={},{}
+print(TEST_LOCAL,TEST_LOCAL2)
+local f=function(TEST_PARAM) return TEST_PARAM end
+for TEST_LOOP in pairs({}) do print(TEST_LOOP) end
+local t={TEST_KEY=true, TEST_KEY2=false; TEST_KEY3=true}
+t.TEST_FIELD=true
+t:TEST_METHOD()
+local s=TEST_REAL -- TEST_FAKE
 {$asm}
 ]==])
-  eq(#r.dependencies,1);eq(r.dependencies[1].name,'DWG_REAL')
+  eq(#r.dependencies,1);eq(r.dependencies[1].name,'TEST_REAL')
   eq(r.dependencies[1].section,'common');eq(r.dependencies[1].line,19)
 end)
 
 test('Lua comparisons and self reads stay requirements and never execute',function()
   local r=report([=[{$lua}
 error('MUST NOT EXECUTE')
-DWG_STATE=DWG_STATE or {}
-assert(DWG_STATE==nil or DWG_OTHER~=nil)
+GAME_STATE=GAME_STATE or {}
+assert(GAME_STATE==nil or TEST_OTHER~=nil)
 {$asm}
 ]=])
   eq(#r.dependencies,4);eq(r.dependencies[1].relation,'provides')
   for i=2,4 do eq(r.dependencies[i].relation,'requires') end
-  eq(_G.DWG_STATE,nil)
+  eq(_G.GAME_STATE,nil)
 end)
 
 test('Lua long literals unfinished comments and chunk boundaries stay conservative',function()
-  local r=report('{$lua}\nlocal x="DWG_FAKE"; DWG_FIRST={}\n{$asm}\n[DISABLE]\n{$lua}\nlocal s=DWG_FIRST\n--[==[ DWG_NEVER={}\nDWG_NEVER2={}\n')
+  local r=report('{$lua}\nlocal x="TEST_FAKE"; TEST_FIRST={}\n{$asm}\n[DISABLE]\n{$lua}\nlocal s=TEST_FIRST\n--[==[ TEST_NEVER={}\nTEST_NEVER2={}\n')
   eq(#r.dependencies,2);eq(r.dependencies[1].relation,'provides')
   eq(r.dependencies[2].section,'disable');eq(r.dependencies[2].line,6)
 end)
 
 test('Lua named global functions and AA-looking literals remain lexical',function()
-  local r=report('[ENABLE]\n{$lua}\nfunction DWG_HELPER() return DWG_PLAYER end\nlocal s=[=[\n{$lua}\n[DISABLE]\n]=]\nDWG_LAST={}\n{$asm}')
+  local r=report('[ENABLE]\n{$lua}\nfunction TEST_HELPER() return TEST_PLAYER end\nlocal s=[=[\n{$lua}\n[DISABLE]\n]=]\nTEST_LAST={}\n{$asm}')
   eq(#r.dependencies,3);eq(r.dependencies[1].relation,'provides')
-  eq(r.dependencies[2].relation,'requires');eq(r.dependencies[3].name,'DWG_LAST')
+  eq(r.dependencies[2].relation,'requires');eq(r.dependencies[3].name,'TEST_LAST')
   eq(r.dependencies[3].section,'enable');eq(r.dependencies[3].line,8)
 end)
 
@@ -763,7 +917,7 @@ test('Lua static RVA hook is inventoried without execution',function()
 [ENABLE]
 {$lua}
 if syntaxcheck then return end
-local base=getAddress('Dawnwalker.exe')
+local base=getAddress('sample.exe')
 local source=base+0x5F33B4A
 local expected={0x48,0x8B,0x4B,0x10,0x48,0x8B,0xD0,0xE8,0xDA,0x33,0x13,0xFB,0x84,0xC0,0x0F,0x84}
 local original={0x48,0x8B,0x4B,0x10,0x48,0x8B,0xD0}
@@ -783,7 +937,7 @@ local ok,err=autoAssemble(assembly)
   local hook=resource.hook
 
   eq(hook.kind,'lua_rva_hook')
-  eq(hook.module,'Dawnwalker.exe')
+  eq(hook.module,'sample.exe')
   eq(hook.rva,'0x5F33B4A')
   eq(hook.expected_bytes,16)
   eq(hook.original_bytes,7)
@@ -972,8 +1126,8 @@ alloc(buffer,16)
 registersymbol(buffer)
 {$lua}
 error('SOURCE MUST NEVER EXECUTE')
-local s=DWG_HC_PLAYER
-DWG_HC_GODMODE={enabled=true}
+local s=MOD_PLAYER
+MOD_GODMODE={enabled=true}
 local base = getAddress('test.exe')
 local source = base + 0x10
 local expected = {0x90}

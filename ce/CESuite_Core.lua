@@ -7,7 +7,8 @@ local Disasm=require('disassembly')
 local Export=require('exporter')
 local Life=require('lifecycle')
 local UI=require('ui')
-local Core={identity='CESuiteCore',version='0.1.4',schema_version='0.1',status='stopped',state=Life.new()}
+local Dependencies=require('dependencies')
+local Core={identity='CESuiteCore',version='0.1.5',schema_version='0.1',status='stopped',state=Life.new()}
 function Core.analyze(mode)
   return Core.state.run(function()
     local r={schema_version=Core.schema_version,core_version=Core.version,
@@ -23,6 +24,7 @@ function Core.analyze(mode)
         'Table Lua is an editor snapshot; external Lua files, closures and arbitrary globals are not captured.'})}
     Env.capture(api,r)
     if mode~='process' then CT.capture(api,r,mode=='selected') end
+    r.dependency_summary=Dependencies.summarize(r.dependencies)
     if mode=='validate' or mode=='export' then AOB.validate(api,r,Disasm.capture) end
     r.completed_at=os.date('!%Y-%m-%dT%H:%M:%SZ')
     if U.call(api,'getOpenedProcessID')~=r.target.pid then

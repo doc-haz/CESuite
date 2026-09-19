@@ -6,6 +6,7 @@ The library architecture must match Python. No CE APIs or target access are used
 """
 import argparse
 import ctypes
+import json
 import os
 import tempfile
 import zipfile
@@ -59,3 +60,21 @@ if __name__ == '__main__':
             archive.extractall(output / 'autorun')
         (output / 'portable.lua').write_text(ET.parse(output / f'CESuite_Core_v{version()}.CT').getroot().findtext('LuaScript'), encoding='utf-8')
         run(library, 'ce/tests/distribution_spec.lua', output)
+        # Regression for replay-harness quoting: source and IDs are inert data,
+        # including strings that would close long-bracket Lua literals.
+        from replay_dependencies import replay
+        source = output / 'cached-input.json'
+        script_id = 'quoted-"-\\-]===]-\u00e9'
+        script_text = '''{$lua}
+error('INSPECTED SOURCE MUST NOT EXECUTE')
+local text="]===] \\" \\n"
+TEST_GLOBAL=TEST_GLOBAL or {}
+{$asm}'''
+        source.write_text(json.dumps({'scripts': [
+            {'id': script_id, 'language': 'AA', 'text': script_text}
+        ]}), encoding='utf-8')
+        result = replay(source, output / 'replay.json', library)
+        assert [(d['name'], d['relation'], d['script_id']) for d in result['dependencies']] == [
+            ('TEST_GLOBAL', 'provides', script_id), ('TEST_GLOBAL', 'requires', script_id)]
+        assert len(result['dependency_summary']) == 2
+        print('1 replay harness test passed (escaped input stays inert; no source execution)')

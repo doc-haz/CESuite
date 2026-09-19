@@ -114,6 +114,12 @@ function M.install(Core,api)
   command('Remove CESuite Menu',function()
     Core.shutdown()
   end)
+
+  command('Dependency Summary',function()
+    local r=Core.analyze('table')
+    Core.showReport({dependency_summary=r.dependency_summary,
+      note='Lexical groups only; all unverified. Counts include repeated uses. Occurrence indices refer to dependencies in the full report from this same analysis.'})
+  end)
 end
 
 return M

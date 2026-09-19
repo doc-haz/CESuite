@@ -1,8 +1,21 @@
 # Changelog
 
+## 0.1.5 - Unreleased
+
+- Preserve raw dependency occurrences and add deterministic lexical groups by
+  exact name, kind, source and relation; deduplicate displayed locations only.
+- Retain occurrence counts and one-based references to the original evidence,
+  with unique script IDs and sections; never infer resolved edges or availability.
+- Add a Dependency Summary menu view and backward-compatible runtime schema.
+- Generalize Lua global detection beyond a fixed namespace; exclude explicit locals,
+  keywords, standard Lua names and a static exact-name CE API catalog.
+- Keep AA detection and Lua/RVA resources unchanged; no inspected code runs.
+- Add same-line, cross-script, mixed-relation and legacy JSON regressions.
+- Offline validation only; no new live CE validation or release.
+
 ## 0.1.4 - First lexical dependency inventory
 
-- Extend embedded Lua inventory with conservative DWG_* global occurrences,
+- Extend embedded Lua inventory with conservative namespace-limited global occurrences,
   source lua_lexical and status unverified; exclude strings/comments and explicit
   locals, retain parent source lines and ENABLE/DISABLE sections.
 - Add partial, unverified provides/requires occurrences with script, line, section
@@ -25,7 +38,7 @@
   allocation candidates such as `autoAssemble(...)` and `allocateMemory(...)`.
 - Add `LUA-RVA-HOOK` review diagnostics while retaining `DYNAMIC-SOURCE` to keep
   runtime semantics explicitly unverified.
-- Add synthetic regression coverage for Dawnwalker-style Lua/RVA hooks.
+- Add synthetic regression coverage for static Lua/RVA hooks.
 - Verified against Cheat Engine 7.7.1 using a live selected-script inspection.
 
 ## 0.1.2 - CE 7.7.1 UI hotfixes

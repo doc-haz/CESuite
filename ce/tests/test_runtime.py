@@ -20,6 +20,61 @@ class RuntimeContractTests(unittest.TestCase):
         self.schema = json.loads((ROOT / 'schemas/runtime-report.schema.json').read_text())
         self.validator = Draft202012Validator(self.schema)
 
+    def test_legacy_014_report_needs_no_migration(self):
+        report = json.loads((ROOT / 'fixtures/runtime-v0.1.4.json').read_text())
+        self.assertEqual(report['core_version'], '0.1.4')
+        self.assertNotIn('dependency_summary', report)
+        self.validator.validate(report)
+        del report['dependencies']
+        with self.assertRaises(ValidationError):
+            self.validator.validate(report)
+
+    def test_summary_indices_counts_and_identity_match_original_occurrences(self):
+        for name in ['generated-report.json', 'generated-observed.json', 'generated-dependencies.json']:
+            report = json.loads((ROOT / 'ce/tests' / name).read_text())
+            self.assertEqual(report['core_version'], '0.1.5')
+            self.validator.validate(report)
+            visited, identities = [], set()
+            for group in report['dependency_summary']:
+                fields = ('name', 'kind', 'source', 'relation')
+                identity = tuple(group[f] for f in fields)
+                self.assertNotIn(identity, identities)
+                identities.add(identity)
+                self.assertEqual(group['location_count'], len(group['locations']))
+                self.assertEqual(group['occurrence_count'], sum(x['occurrence_count'] for x in group['locations']))
+                self.assertEqual(group['script_ids'], list(dict.fromkeys(x['script_id'] for x in group['locations'])))
+                self.assertEqual(group['sections'], list(dict.fromkeys(x['section'] for x in group['locations'])))
+                for location in group['locations']:
+                    self.assertEqual(location['occurrence_count'], len(location['occurrence_indices']))
+                    for index in location['occurrence_indices']:
+                        original = report['dependencies'][index - 1]
+                        self.assertEqual(identity, tuple(original[f] for f in fields))
+                        for field in ('script_id', 'section', 'line', 'command'):
+                            self.assertEqual(location[field], original[field])
+                        visited.append(index)
+            self.assertEqual(sorted(visited), list(range(1, len(report['dependencies']) + 1)))
+
+    def test_summary_contract_rejects_missing_invalid_and_verified_evidence(self):
+        report = json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+        missing = copy.deepcopy(report)
+        del missing['dependency_summary']
+        with self.assertRaises(ValidationError):
+            self.validator.validate(missing)
+        missing['core_version'] = '0.1.4'
+        self.validator.validate(missing)
+        for field, value in [('status', 'verified'), ('occurrence_count', 0),
+                             ('location_count', 0), ('locations', []), ('script_ids', []),
+                             ('sections', ['enable', 'enable']), ('source', 'runtime')]:
+            changed = copy.deepcopy(report)
+            changed['dependency_summary'][0][field] = value
+            with self.assertRaises(ValidationError):
+                self.validator.validate(changed)
+        for value in [[0], [1, 1], []]:
+            changed = copy.deepcopy(report)
+            changed['dependency_summary'][0]['locations'][0]['occurrence_indices'] = value
+            with self.assertRaises(ValidationError):
+                self.validator.validate(changed)
+
     def test_schema_and_real_lua_serialization(self):
         Draft202012Validator.check_schema(self.schema)
         for name in ['generated-report.json', 'generated-observed.json', 'generated-dependencies.json']:
@@ -61,16 +116,31 @@ class RuntimeContractTests(unittest.TestCase):
         report = json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
         rows = [d for d in report['dependencies'] if d['source'] == 'lua_lexical']
         self.assertEqual([(d['name'], d['relation']) for d in rows],
-                         [('DWG_HC_PLAYER', 'requires'), ('DWG_HC_GODMODE', 'provides')])
+                         [('MOD_PLAYER', 'requires'), ('MOD_GODMODE', 'provides')])
         for row in rows:
             self.assertEqual(row['status'], 'unverified')
             self.assertEqual(row['section'], 'enable')
             for field, value in [('status', 'verified'), ('source', 'lexical'),
-                                 ('kind', 'symbol'), ('name', 'OTHER_GLOBAL'),
+                                 ('kind', 'symbol'), ('name', 'invalid-name'),
                                  ('command', 'alloc'), ('relation', 'resolved')]:
                 changed = copy.deepcopy(report)
                 index = report['dependencies'].index(row)
                 changed['dependencies'][index][field] = value
+                with self.assertRaises(ValidationError):
+                    self.validator.validate(changed)
+
+    def test_lua_schema_accepts_generic_names_in_occurrences_and_summary(self):
+        report = json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+        for name in ['GAME_STATE', 'modPlayer', '_privateFlag', 'customHelper']:
+            changed = copy.deepcopy(report)
+            for row in changed['dependencies'] + changed['dependency_summary']:
+                if row['source'] == 'lua_lexical':
+                    row['name'] = name
+            self.validator.validate(changed)
+        for field in ['dependencies', 'dependency_summary']:
+            for name in ['bad-name', '0bad', '', 'object.field']:
+                changed = copy.deepcopy(report)
+                next(row for row in changed[field] if row['source'] == 'lua_lexical')['name'] = name
                 with self.assertRaises(ValidationError):
                     self.validator.validate(changed)
 

@@ -34,16 +34,18 @@ The existing resources, defines, labels and warnings retain their previous behav
 
 ## Embedded Lua globals
 
-Only bare, case-sensitive `DWG_[A-Za-z0-9_]+` identifiers in `{$lua}` chunks
-are collected, with `kind: lua_global` and the parent AA script ID and line.
+Core 0.1.4 restricted bare globals to a fixed namespace. Core 0.1.5 removes
+that restriction; see [generic detection rules](dependencies-v0.1.5.md).
+The neutral examples below describe the current semantics, with
+`kind: lua_global` and the parent AA script ID and line.
 
 | Source | Occurrence |
 | --- | --- |
-| `local s=DWG_HC_PLAYER` or `DWG_HC_PLAYER.enabled` | `requires`, `lua_global_reference` |
-| `DWG_HC_GODMODE={...}` or other single non-nil assignment | `provides`, `lua_global_assignment` |
-| `function DWG_HELPER(...)` | `provides`, `lua_global_assignment` |
-| `DWG_STATE=nil` or `DWG_STATE.enabled=false` | `requires`, never proof of creation |
-| `DWG_STATE=DWG_STATE or {}` | one provides and one requires occurrence |
+| `local s=MOD_PLAYER` or `MOD_PLAYER.enabled` | `requires`, `lua_global_reference` |
+| `MOD_GODMODE={...}` or other single non-nil assignment | `provides`, `lua_global_assignment` |
+| `function customHelper(...)` | `provides`, `lua_global_assignment` |
+| `GAME_STATE=nil` or `GAME_STATE.enabled=false` | `requires`, never proof of creation |
+| `GAME_STATE=GAME_STATE or {}` | one provides and one requires occurrence |
 
 Quoted strings, escaped quotes, line comments, long strings/comments with arbitrary
 equals-delimiter levels, member names and constructor keys are excluded. Explicit
@@ -64,7 +66,5 @@ Core 0.1.4 and optional for older reports. The schema also accepts Core 0.1.2/0.
 and the already implemented Lua/RVA resource shape. Consumers using an older
 closed schema must update it before validating 0.1.4 reports.
 
-Validation uses synthetic Lua/CE mocks, real JSON exports and schema rejection
-tests. Offline replay of the cached Dawnwalker CE 7.71 report yields 117 occurrences
-(21 provides, 96 requires, 21 unique names), retaining 16 Lua/RVA resources.
-This replay is not new live Cheat Engine integration validation.
+Validation uses synthetic Lua/CE mocks, JSON exports and schema rejection tests.
+Application-specific evidence belongs in [reproducible validation cases](validation/dawnwalker.md).

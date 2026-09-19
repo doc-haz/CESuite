@@ -1,6 +1,7 @@
 -- Conservative lexical AA/Lua inventory.
 -- Never compiles AA or evaluates Lua/expressions.
 local U=require('util')
+local LuaNames=require('luanames')
 local M={}
 
 function M.arguments(s)
@@ -66,16 +67,29 @@ local function luaDependencies(text,script,report,startLine,section)
     local clean=maskLua(raw,state)
     local i=1
     while i<=#clean do
-      local word=clean:sub(i):match('^[A-Za-z_][A-Za-z0-9_]*')
+      local rest=clean:sub(i)
+      local word=rest:match('^[A-Za-z_][A-Za-z0-9_]*')
+      -- Consume numerals as whole tokens, not fragments such as xFF or e10.
+      local number=rest:match('^0[xX]%x+%.?%x*[pP][+-]?%d+')
+        or rest:match('^0[xX]%x*%.%x+[pP][+-]?%d+')
+        or rest:match('^0[xX]%x+%.?%x*')
+        or rest:match('^0[xX]%x*%.%x+')
+        or rest:match('^%d+%.?%d*[eE][+-]?%d+')
+        or rest:match('^%.%d+[eE][+-]?%d+')
+        or rest:match('^%d+%.?%d*') or rest:match('^%.%d+')
       local pair=clean:sub(i,i+1)
-      local value=word or ((pair=='==' or pair=='~=' or pair=='<=' or pair=='>=') and pair) or clean:sub(i,i)
+      local value=word or number or (rest:sub(1,3)=='...' and '...')
+        or ((pair=='==' or pair=='~=' or pair=='<=' or pair=='>=' or pair=='..' or pair=='::') and pair)
+        or clean:sub(i,i)
       if not value:match('^%s$') then tokens[#tokens+1]={value=value,line=line} end
       i=i+#value
     end
     line=line+1
   end
   local function value(i) return tokens[i] and tokens[i].value or '' end
-  local function identifier(v) return v:match('^[A-Za-z_][A-Za-z0-9_]*$') end
+  local function identifier(v)
+    return v:match('^[A-Za-z_][A-Za-z0-9_]*$') and not LuaNames.keywords[v]
+  end
   -- Suppress explicit local/parameter/loop names throughout this chunk. This
   -- deliberately under-reports shadowed names instead of guessing Lua scope.
   local locals={}
@@ -90,7 +104,10 @@ local function luaDependencies(text,script,report,startLine,section)
       end
     elseif t.value=='function' then
       local j=i+1
-      while j<=#tokens and value(j)~='(' do j=j+1 end
+      while j<=#tokens and value(j)~='(' do
+        if value(j)==':' then locals.self=true end
+        j=j+1
+      end
       j=j+1
       while j<=#tokens and value(j)~=')' do
         if identifier(value(j)) then locals[value(j)]=true end
@@ -103,10 +120,12 @@ local function luaDependencies(text,script,report,startLine,section)
     local name,prev,nextValue=t.value,value(i-1),value(i+1)
     if name=='{' then tableDepth=tableDepth+1 end
     if name=='}' then tableDepth=math.max(0,tableDepth-1) end
-    if name:match('^DWG_[A-Za-z0-9_]+$') and not locals[name]
-      and prev~='.' and prev~=':' then
+    if identifier(name) and not locals[name] and not LuaNames.excluded(name)
+      and prev~='.' and prev~=':' and prev~='::' and nextValue~='::'
+      and prev~='goto' then
       local key=nextValue=='=' and (tableDepth>0 or prev==',')
-      if not key then
+      local attribute=prev=='<' and nextValue=='>' and (name=='const' or name=='close')
+      if not key and not attribute then
         local provides=(nextValue=='=' and value(i+2)~='nil')
           or (prev=='function' and nextValue=='(')
         report.dependencies[#report.dependencies+1]={

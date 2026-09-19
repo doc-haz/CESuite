@@ -170,6 +170,11 @@ proprietary binaries or memory dumps.
 
 ## Evolution
 
+Core 0.1.5 (unreleased) adds a **Dependency Summary** menu view and an additive
+`dependency_summary` array in full reports, preserving every raw occurrence in
+`dependencies`. See [the aggregation contract](dependencies-v0.1.5.md) for counts,
+provenance, compatibility and deliberately unverified semantics.
+
 Each real CT that exposes a reusable limitation should lead to a minimal synthetic
 regression fixture, a focused module change, schema migration when needed and an
 explicit changelog entry. Retain old reports where practical; never silently upgrade
