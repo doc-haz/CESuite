@@ -29,10 +29,77 @@ class RuntimeContractTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             self.validator.validate(report)
 
+    def profile_report(self):
+        return json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+
+    def test_profile_optional_for_legacy_and_current_reports(self):
+        report = self.profile_report()
+        del report['semantics_profile']
+        for version in ['0.1.0', '0.1.1', '0.1.2', '0.1.3', '0.1.4', '0.1.5', '0.1.6']:
+            report['core_version'] = version
+            self.validator.validate(report)
+
+    def test_generated_profile_evidence_contract(self):
+        report = self.profile_report()
+        self.validator.validate(report)
+        profile = report['semantics_profile']
+        self.assertEqual(profile['source_runtime_equivalence'], 'unverified')
+        runtime = profile['runtime_profile']
+        self.assertEqual(runtime['api_version'], report['ce_version'])
+        self.assertEqual(runtime['declared_version_basis'], 'not_available')
+        for key in ['declared_version', 'file_version', 'binary_sha256']:
+            self.assertIsNone(runtime[key])
+        notes = profile['known_post_source_changes']
+        self.assertEqual(len(notes), 6)
+        self.assertEqual(len({n['id'] for n in notes}), len(notes))
+        for note in notes:
+            self.assertEqual(note['evidence_kind'], 'release_note_evidence')
+            self.assertEqual(note['runtime_validation'], 'not_performed')
+            self.assertEqual(note['evidence_ref'], 'user-chronology/' + note['version'])
+
+    def test_profile_rejects_unsupported_states_and_evidence(self):
+        for path, value in [
+            (['source_runtime_equivalence'], 'equivalent'),
+            (['source_runtime_equivalence'], 'known_differences'),
+            (['profile_version'], '2'),
+            (['runtime_profile', 'declared_version'], '7.7.1'),
+            (['runtime_profile', 'declared_version_basis'], 'runtime'),
+            (['known_post_source_changes', 0, 'evidence_kind'], 'source_verified'),
+            (['known_post_source_changes', 0, 'runtime_validation'], 'verified'),
+            (['known_post_source_changes', 0, 'evidence_ref'], 'https://invented.invalid'),
+        ]:
+            with self.subTest(path=path):
+                report = self.profile_report()
+                target = report['semantics_profile']
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = value
+                with self.assertRaises(ValidationError):
+                    self.validator.validate(report)
+
+    def test_profile_requires_exact_source_commit(self):
+        for value in [None, '', 'ec45d5f', 'g' * 40, '0' * 40]:
+            report = self.profile_report()
+            report['semantics_profile']['source_profile']['commit'] = value
+            with self.assertRaises(ValidationError):
+                self.validator.validate(report)
+        report = self.profile_report()
+        del report['semantics_profile']['source_profile']['commit']
+        with self.assertRaises(ValidationError):
+            self.validator.validate(report)
+
+    def test_profile_cannot_upgrade_dependency_status(self):
+        report = self.profile_report()
+        self.assertTrue(report['dependencies'])
+        self.assertTrue(all(d['status'] == 'unverified' for d in report['dependencies']))
+        report['dependencies'][0]['status'] = 'source_verified'
+        with self.assertRaises(ValidationError):
+            self.validator.validate(report)
+
     def test_summary_indices_counts_and_identity_match_original_occurrences(self):
         for name in ['generated-report.json', 'generated-observed.json', 'generated-dependencies.json']:
             report = json.loads((ROOT / 'ce/tests' / name).read_text())
-            self.assertEqual(report['core_version'], '0.1.5')
+            self.assertEqual(report['core_version'], '0.1.6')
             self.validator.validate(report)
             visited, identities = [], set()
             for group in report['dependency_summary']:

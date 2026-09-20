@@ -32,7 +32,8 @@
         "0.1.2",
         "0.1.3",
         "0.1.4",
-        "0.1.5"
+        "0.1.5",
+        "0.1.6"
       ]
     },
     "ce_version": {
@@ -410,6 +411,9 @@
       "items": {
         "$ref": "#/$defs/dependencyGroup"
       }
+    },
+    "semantics_profile": {
+      "$ref": "#/$defs/semanticsProfile"
     }
   },
   "allOf": [
@@ -419,7 +423,8 @@
           "core_version": {
             "enum": [
               "0.1.4",
-              "0.1.5"
+              "0.1.5",
+              "0.1.6"
             ]
           }
         }
@@ -434,7 +439,10 @@
       "if": {
         "properties": {
           "core_version": {
-            "const": "0.1.5"
+            "enum": [
+              "0.1.5",
+              "0.1.6"
+            ]
           }
         }
       },
@@ -1409,6 +1417,121 @@
           }
         }
       ]
+    },
+    "semanticsProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_version",
+        "profile_id",
+        "source_profile",
+        "runtime_profile",
+        "source_runtime_equivalence",
+        "known_post_source_changes"
+      ],
+      "properties": {
+        "profile_version": {
+          "const": "1"
+        },
+        "profile_id": {
+          "const": "ce-public-ec45d5f-to-runtime-r1"
+        },
+        "source_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "commit",
+            "version_label",
+            "version_label_basis"
+          ],
+          "properties": {
+            "repository": {
+              "const": "https://github.com/cheat-engine/cheat-engine"
+            },
+            "commit": {
+              "const": "ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37"
+            },
+            "version_label": {
+              "const": "7.5.1 public-source baseline"
+            },
+            "version_label_basis": {
+              "const": "research_context_not_binary_identity"
+            }
+          }
+        },
+        "runtime_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "declared_version",
+            "declared_version_basis",
+            "api_version",
+            "file_version",
+            "binary_sha256"
+          ],
+          "properties": {
+            "declared_version": {
+              "type": "null"
+            },
+            "declared_version_basis": {
+              "const": "not_available"
+            },
+            "api_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "file_version": {
+              "type": "null"
+            },
+            "binary_sha256": {
+              "type": "null"
+            }
+          }
+        },
+        "source_runtime_equivalence": {
+          "const": "unverified"
+        },
+        "known_post_source_changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version",
+              "feature",
+              "evidence_kind",
+              "evidence_ref",
+              "runtime_validation"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]+$"
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^7\\.[0-9]+\\.[0-9]+$"
+              },
+              "feature": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence_kind": {
+                "const": "release_note_evidence"
+              },
+              "evidence_ref": {
+                "type": "string",
+                "pattern": "^user-chronology/7\\.[0-9]+\\.[0-9]+$"
+              },
+              "runtime_validation": {
+                "const": "not_performed"
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

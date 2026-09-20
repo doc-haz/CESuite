@@ -7,7 +7,8 @@ local Export=require('exporter')
 local Life=require('lifecycle')
 local UI=require('ui')
 local Dependencies=require('dependencies')
-local Core={identity='CESuiteCore',version='0.1.5',schema_version='0.1',status='stopped',state=Life.new()}
+local Semantics=require('semantics')
+local Core={identity='CESuiteCore',version='0.1.6',schema_version='0.1',status='stopped',state=Life.new()}
 function Core.analyze(mode)
   return Core.state.run(function()
     local r={schema_version=Core.schema_version,core_version=Core.version,
@@ -22,6 +23,7 @@ function Core.analyze(mode)
         'CE scan memory-type preferences and unreadable pages can limit coverage; no complete address-space accessibility claim.',
         'Table Lua is unavailable: no audited passive source; Lua Engine editor contents, external Lua files, closures and arbitrary globals are not captured.'})}
     Env.capture(api,r)
+    r.semantics_profile=Semantics.profile(r.ce_version)
     if mode~='process' then CT.capture(api,r,mode=='selected') end
     r.dependency_summary=Dependencies.summarize(r.dependencies)
     if mode=='validate' or mode=='export' then AOB.validate(api,r) end

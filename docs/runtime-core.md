@@ -6,6 +6,12 @@ registration, GitHub calls or credentials. The menu and report viewer live in CE
 scans use CE-owned temporary result files, and report export writes a user-selected
 JSON file. Collected scripts are data and are never executed by the analyzer.
 
+Core 0.1.6 adds optional report metadata `semantics_profile`: a pinned public
+source baseline, literal CE API version evidence, and a short secondary
+release-note chronology. Source/runtime equivalence remains `unverified`;
+`7.71` is never promoted to `7.7.1`. See the
+[field definitions and compatibility limits](semantics-profile.md).
+
 ## Use the single CT
 
 For permanent startup loading, use the separate autorun ZIP described in

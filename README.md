@@ -2,7 +2,7 @@
 
 Private, early-stage Cheat Engine CT analysis, diagnostics, porting and authoring toolkit for authorized software research. Scope includes general applications, development tools, simulations and games; it is not game-specific.
 
-## CESuite Core Runtime 0.1.5 (unreleased)
+## CESuite Core Runtime 0.1.6 (unreleased)
 
 CESuite provides a local observation/export runtime for Cheat Engine. Open
 [releases/CESuite_Core.CT](releases/CESuite_Core.CT) to install the CESuite menu,
@@ -13,7 +13,7 @@ The core does not activate scripts, patch memory or execute inspected AA/Lua.
 See [runtime usage, API coverage and limitations](docs/runtime-core.md),
 [runtime schema](schemas/runtime-report.schema.json) and [changelog](CHANGELOG.md).
 Source is modular under `ce/`; `python tools/build_ce.py` produces
-`releases/CESuite_Core_v0.1.5.CT` and `releases/CESuite_Autorun_v0.1.5.zip`, plus
+`releases/CESuite_Core_v0.1.6.CT` and `releases/CESuite_Autorun_v0.1.6.zip`, plus
 the existing unversioned CT and alternative Lua loader. The ZIP extracts directly
 into `C:\Program Files\Cheat Engine\autorun\` for permanent startup loading.
 Both modes share duplicate-load guards and require no network at runtime.
@@ -30,7 +30,8 @@ Embedded Lua detection uses generic identifiers with conservative exclusions for
 locals, Lua builtins and known CE APIs; it has no game-specific naming rule.
 CESuite describes generic capabilities; games appear only as reproducible validation cases.
 See [aggregation and compatibility contract](docs/dependencies-v0.1.5.md).
-0.1.5 is unreleased; offline tests do not establish live CE integration.
+0.1.6 adds the [source/runtime evidence profile](docs/semantics-profile.md).
+It is unreleased; offline tests do not establish live CE integration.
 
 ## CT Analyzer 0.1 (offline)
 

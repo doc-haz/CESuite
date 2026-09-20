@@ -20,6 +20,60 @@ local function eq(actual,expected)
   assert(actual==expected,tostring(actual)..' ~= '..tostring(expected))
 end
 
+for _,case in ipairs({'numeric','text','missing','throwing'}) do
+  test('P0-04 version evidence remains literal: '..case,function()
+    local calls=0
+    local api={getOpenedProcessID=function() return 0 end}
+    if case~='missing' then
+      api.getCEVersion=function()
+        calls=calls+1
+        if case=='throwing' then error('unavailable') end
+        return case=='numeric' and 7.71 or '7.71'
+      end
+    end
+    local core=assert(loadfile('ce/CESuite_Core.lua','t',
+      setmetatable({api=api,require=require},{__index=_G})))()
+    for _,mode in ipairs({'process','table','selected','validate','export'}) do
+      local r=core.analyze(mode)
+      local p=r.semantics_profile
+      local expected=(case=='missing' or case=='throwing') and 'unknown' or '7.71'
+      eq(r.ce_version,expected);eq(p.runtime_profile.api_version,r.ce_version)
+      eq(p.runtime_profile.declared_version,U.null)
+      eq(p.runtime_profile.declared_version_basis,'not_available')
+      eq(p.runtime_profile.file_version,U.null);eq(p.runtime_profile.binary_sha256,U.null)
+      eq(p.source_runtime_equivalence,'unverified')
+      -- Every analysis receives fresh metadata, including nested release-note rows.
+      p.source_profile.commit='mutated'
+      p.known_post_source_changes[1].runtime_validation='mutated'
+      local fresh=require('semantics').profile(r.ce_version)
+      eq(fresh.source_profile.commit,'ec45d5f47f92a239ba0bf51ec5d04a7509c3fd37')
+      eq(fresh.known_post_source_changes[1].runtime_validation,'not_performed')
+    end
+    eq(calls,case=='missing' and 0 or 5)
+  end)
+end
+
+test('P0-04 metadata leaves existing report semantics unchanged',function()
+  local api={getOpenedProcessID=function() return 0 end,vtAutoAssembler=11,
+    getAddressList=function() return {Count=1,getMemoryRecord=function()
+      return {ID=1,Type=11,OffsetCount=0,Script='[ENABLE]\nalloc(buffer,16)\nregistersymbol(buffer)\n[DISABLE]\ndealloc(buffer)'}
+    end} end}
+  local function core(loader)
+    return assert(loadfile('ce/CESuite_Core.lua','t',
+      setmetatable({api=api,require=loader},{__index=_G})))()
+  end
+  local normal=core(require).analyze('table')
+  local without=core(function(name)
+    if name=='semantics' then return {profile=function() return nil end} end
+    return require(name)
+  end).analyze('table')
+  assert(#normal.dependencies>0 and #normal.resources>0)
+  for _,row in ipairs(normal.dependencies) do eq(row.status,'unverified') end
+  normal.semantics_profile=nil
+  normal.generated_at=without.generated_at;normal.completed_at=without.completed_at
+  eq(E.encode(normal),E.encode(without))
+end)
+
 local function report(source)
   local r={
     aobs=U.array(),

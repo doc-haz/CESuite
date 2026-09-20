@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.6 - Unreleased (P0-04)
+
+- Add a pinned source/runtime evidence profile, without asserting equivalence
+  or changing dependency/resource semantics. Preserve the CE API version string;
+  declared version, executable file version and binary hash remain null.
+- Record six representative user-chronology release-note entries as secondary,
+  runtime-unvalidated evidence; no feature detection or inspected code execution.
+- Extend the runtime schema to accept 0.1.6 while retaining valid legacy reports
+  without the optional profile. Old validators may reject new reports.
+- See docs/semantics-profile.md for evidence provenance and deferred scope.
+
 ## 0.1.5 - Unreleased
 
 - Preserve raw dependency occurrences and add deterministic lexical groups by
