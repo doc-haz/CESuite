@@ -838,6 +838,52 @@ test('CT hierarchy, repeated IDs, selection and no activation',function()
   eq(r.records[1].key,'record-2')
 end)
 
+for _,dynamic in ipairs({false,true}) do
+  test('passive capture never reads Address: '..(dynamic and 'dynamic offsets' or 'simple record'),function()
+    local reads=0
+    local source='[ENABLE]\n{$lua}\nerror("INSPECTED SOURCE MUST NOT EXECUTE")\n{$asm}\nregistersymbol(example)\n[DISABLE]'
+    local record=setmetatable({
+      ID=42,Index=0,Description='Passive fixture',Type=11,Active=false,
+      Script=source,OffsetCount=dynamic and 2 or 0,
+      OffsetText=dynamic and {[0]='10',[1]='error("DYNAMIC OFFSET MUST NOT EXECUTE")'} or {}
+    },{__index=function(_,key)
+      if key=='Address' then reads=reads+1;error('Address getter accessed') end
+      if key=='CurrentAddress' or key=='Value' or key=='Offset' then
+        error('Unsafe replacement property accessed: '..key)
+      end
+    end})
+    local api={vtAutoAssembler=11,getAddressList=function()
+      return {Count=1,SelectedRecord=record,LoadedTableVersion=45,
+        getMemoryRecord=function() return record end}
+    end}
+    for _,selectedOnly in ipairs({false,true}) do
+      local r=report()
+      CT.capture(api,r,selectedOnly)
+      eq(reads,0)
+      eq(r.ct.status,'captured')
+      eq(r.ct.selection_only,selectedOnly)
+      eq(r.ct.loaded_table_version,45)
+      eq(#r.records,1)
+      local row=r.records[1]
+      eq(row.address,U.null)
+      eq(row.id,42)
+      eq(row.description,'Passive fixture')
+      eq(row.variable_type,11)
+      eq(row.active,false)
+      eq(#row.offsets,dynamic and 2 or 0)
+      if dynamic then
+        eq(row.offsets[1],'10')
+        eq(row.offsets[2],record.OffsetText[1])
+      end
+      eq(#row.scripts,1)
+      eq(r.scripts[1].text,source)
+      eq(r.dependencies[1].name,'example')
+      assert(E.encode(r):find('"address":null',1,true))
+    end
+    eq(reads,0)
+  end)
+end
+
 test('no process is not x86',function()
   local r=report()
 

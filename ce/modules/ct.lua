@@ -29,8 +29,10 @@ function M.capture(api,report,selectedOnly)
     if not selectedOnly or r==selected or (selectedIndex~=nil and U.get(r,'Index')==selectedIndex) then
       local parent=U.get(r,'Parent')
       local parentKey=parent and (indexKeys[U.get(parent,'Index')] or keys[parent])
+      -- Address can evaluate dynamic offsets and execute Lua, even inside pcall.
+      -- Keep the nullable report field without resolving it during passive capture.
       local row={key=keys[r],id=U.get(r,'ID') or U.null,parent_key=parentKey or U.null,
-        description=U.get(r,'Description') or '',address=U.get(r,'Address') or U.null,
+        description=U.get(r,'Description') or '',address=U.null,
         variable_type=U.get(r,'Type') or U.null,active=U.get(r,'Active')==true,scripts=U.array(),offsets=U.array()}
       for j=0,(U.get(r,'OffsetCount') or 0)-1 do
         local ok,offset=pcall(function() return r.OffsetText[j] end)
