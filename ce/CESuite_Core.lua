@@ -3,7 +3,6 @@ local U=require('util')
 local Env=require('environment')
 local CT=require('ct')
 local AOB=require('aob')
-local Disasm=require('disassembly')
 local Export=require('exporter')
 local Life=require('lifecycle')
 local UI=require('ui')
@@ -18,14 +17,14 @@ function Core.analyze(mode)
         'Not an atomic process snapshot; target memory and modules may change during collection.',
         'Uniqueness applies only to CE-readable memory in this scan, not other builds or hook compatibility.',
         'No source scripts, symbol callbacks, includes or macros are executed. Computed expressions can remain unresolved.',
-        'Up to 256 addresses per AOB; context for first 8 matches and first 8 resolved hook candidates.',
+        'Up to 256 addresses per AOB; byte and instruction context omitted because CE disassembly may invoke unaudited callbacks/overrides.',
         'Instruction boundaries, ownership, restore-before-free, overwrite length and relocation safety remain unverified.',
         'CE scan memory-type preferences and unreadable pages can limit coverage; no complete address-space accessibility claim.',
         'Table Lua is unavailable: no audited passive source; Lua Engine editor contents, external Lua files, closures and arbitrary globals are not captured.'})}
     Env.capture(api,r)
     if mode~='process' then CT.capture(api,r,mode=='selected') end
     r.dependency_summary=Dependencies.summarize(r.dependencies)
-    if mode=='validate' or mode=='export' then AOB.validate(api,r,Disasm.capture) end
+    if mode=='validate' or mode=='export' then AOB.validate(api,r) end
     r.completed_at=os.date('!%Y-%m-%dT%H:%M:%SZ')
     if U.call(api,'getOpenedProcessID')~=r.target.pid then
       U.warn(r,'PROCESS-CHANGED','Process changed during collection; runtime results invalidated.')

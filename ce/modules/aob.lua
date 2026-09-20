@@ -123,7 +123,7 @@ function M.validate(api,report,context)
           local address=tonumber(fl.Address[i],16)
           assert(address,'Invalid match address')
           local match={signature_anchor=U.hex(address)}
-          if i<8 then match.context=context(api,address,report.target.architecture) end
+          if context and i<8 then match.context=context(api,address,report.target.architecture) end
           a.matches[#a.matches+1]=match
         end
         a.status='observed'
@@ -146,7 +146,7 @@ function M.validate(api,report,context)
     else U.warn(report,'AMBIGUOUS-ANCHOR','Repeated AOB symbol in this script; hook inference omitted.',a.script_id,a.line) end
     if a.status=='observed' then
       for i,h in ipairs(a.hook_candidates) do
-        if i<=8 and type(h.hook_address)=='string' then h.context=context(api,tonumber(h.hook_address:sub(3),16),report.target.architecture) end
+        if context and i<=8 and type(h.hook_address)=='string' then h.context=context(api,tonumber(h.hook_address:sub(3),16),report.target.architecture) end
       end
     end
   end

@@ -130,7 +130,7 @@ function M.validate(api,report,context)
           local address=tonumber(fl.Address[i],16)
           assert(address,'Invalid match address')
           local match={signature_anchor=U.hex(address)}
-          if i&lt;8 then match.context=context(api,address,report.target.architecture) end
+          if context and i&lt;8 then match.context=context(api,address,report.target.architecture) end
           a.matches[#a.matches+1]=match
         end
         a.status='observed'
@@ -153,7 +153,7 @@ function M.validate(api,report,context)
     else U.warn(report,'AMBIGUOUS-ANCHOR','Repeated AOB symbol in this script; hook inference omitted.',a.script_id,a.line) end
     if a.status=='observed' then
       for i,h in ipairs(a.hook_candidates) do
-        if i&lt;=8 and type(h.hook_address)=='string' then h.context=context(api,tonumber(h.hook_address:sub(3),16),report.target.architecture) end
+        if context and i&lt;=8 and type(h.hook_address)=='string' then h.context=context(api,tonumber(h.hook_address:sub(3),16),report.target.architecture) end
       end
     end
   end
@@ -304,37 +304,10 @@ function M.rip(bytes,arch)
   if addressOverride then return 'not_rip_relative' end
   return modrm&lt;0x40 and modrm%8==5 and 'rip_relative' or 'not_rip_relative'
 end
+-- Compatibility stub: CE disassembly can invoke global overrides/callbacks.
+-- Omit optional context without accessing CE APIs.
 function M.capture(api,address,arch)
-  local result={address=U.hex(address),boundary='unverified_candidate',bytes=U.array(),instructions=U.array(),status='partial'}
-  result.bytes_start=U.hex(math.max(0,address-16));result.bytes_requested=48
-  local bytes,err=U.call(api,'readBytes',math.max(0,address-16),48,true)
-  if type(bytes)=='table' then result.bytes=U.array(bytes) else result.read_error=err or 'Bytes unavailable' end
-  local d
-  local ok,failure=xpcall(function()
-    d=assert(api.createDisassembler(),'Disassembler unavailable')
-    local cursor=address
-    for _=1,8 do
-      local text=d.disassemble(cursor)
-      local data=d.getLastDisassembleData()
-      assert(type(data)=='table' and type(data.bytes)=='table' and #data.bytes&gt;0,'Instruction metadata unavailable')
-      local ins={address=U.hex(cursor),text=text or '',opcode=data.opcode or '',parameters=data.parameters or '',
-        bytes=U.array(data.bytes),length=#data.bytes,branch='unknown',rip_relative=M.rip(data.bytes,arch),
-        classification='CE metadata and limited byte decoder; not relocation validation'}
-      if data.isCall then ins.branch='call'
-      elseif data.isRet then ins.branch='return'
-      elseif data.isConditionalJump then ins.branch='conditional_jump'
-      elseif data.isJump then ins.branch='jump'
-      elseif data.isJump==false and data.isCall==false and data.isRet==false then ins.branch='none' end
-      if data.parameterValueType==1 then ins.parameter_address=U.hex(data.parameterValue) end
-      if data.modrmValueType==1 then ins.memory_operand_address=U.hex(data.modrmValue) end
-      result.instructions[#result.instructions+1]=ins
-      cursor=cursor+#data.bytes
-    end
-    result.status=#result.bytes==48 and 'captured' or 'partial'
-  end,function(e) return tostring(e) end)
-  if d then pcall(function() d.destroy() end) end
-  if not ok then result.disassembly_error=failure end
-  return result
+  return nil
 end
 return M
 
@@ -1275,7 +1248,6 @@ local U=require('util')
 local Env=require('environment')
 local CT=require('ct')
 local AOB=require('aob')
-local Disasm=require('disassembly')
 local Export=require('exporter')
 local Life=require('lifecycle')
 local UI=require('ui')
@@ -1290,14 +1262,14 @@ function Core.analyze(mode)
         'Not an atomic process snapshot; target memory and modules may change during collection.',
         'Uniqueness applies only to CE-readable memory in this scan, not other builds or hook compatibility.',
         'No source scripts, symbol callbacks, includes or macros are executed. Computed expressions can remain unresolved.',
-        'Up to 256 addresses per AOB; context for first 8 matches and first 8 resolved hook candidates.',
+        'Up to 256 addresses per AOB; byte and instruction context omitted because CE disassembly may invoke unaudited callbacks/overrides.',
         'Instruction boundaries, ownership, restore-before-free, overwrite length and relocation safety remain unverified.',
         'CE scan memory-type preferences and unreadable pages can limit coverage; no complete address-space accessibility claim.',
         'Table Lua is unavailable: no audited passive source; Lua Engine editor contents, external Lua files, closures and arbitrary globals are not captured.'})}
     Env.capture(api,r)
     if mode~='process' then CT.capture(api,r,mode=='selected') end
     r.dependency_summary=Dependencies.summarize(r.dependencies)
-    if mode=='validate' or mode=='export' then AOB.validate(api,r,Disasm.capture) end
+    if mode=='validate' or mode=='export' then AOB.validate(api,r) end
     r.completed_at=os.date('!%Y-%m-%dT%H:%M:%SZ')
     if U.call(api,'getOpenedProcessID')~=r.target.pid then
       U.warn(r,'PROCESS-CHANGED','Process changed during collection; runtime results invalidated.')

@@ -20,36 +20,9 @@ function M.rip(bytes,arch)
   if addressOverride then return 'not_rip_relative' end
   return modrm<0x40 and modrm%8==5 and 'rip_relative' or 'not_rip_relative'
 end
+-- Compatibility stub: CE disassembly can invoke global overrides/callbacks.
+-- Omit optional context without accessing CE APIs.
 function M.capture(api,address,arch)
-  local result={address=U.hex(address),boundary='unverified_candidate',bytes=U.array(),instructions=U.array(),status='partial'}
-  result.bytes_start=U.hex(math.max(0,address-16));result.bytes_requested=48
-  local bytes,err=U.call(api,'readBytes',math.max(0,address-16),48,true)
-  if type(bytes)=='table' then result.bytes=U.array(bytes) else result.read_error=err or 'Bytes unavailable' end
-  local d
-  local ok,failure=xpcall(function()
-    d=assert(api.createDisassembler(),'Disassembler unavailable')
-    local cursor=address
-    for _=1,8 do
-      local text=d.disassemble(cursor)
-      local data=d.getLastDisassembleData()
-      assert(type(data)=='table' and type(data.bytes)=='table' and #data.bytes>0,'Instruction metadata unavailable')
-      local ins={address=U.hex(cursor),text=text or '',opcode=data.opcode or '',parameters=data.parameters or '',
-        bytes=U.array(data.bytes),length=#data.bytes,branch='unknown',rip_relative=M.rip(data.bytes,arch),
-        classification='CE metadata and limited byte decoder; not relocation validation'}
-      if data.isCall then ins.branch='call'
-      elseif data.isRet then ins.branch='return'
-      elseif data.isConditionalJump then ins.branch='conditional_jump'
-      elseif data.isJump then ins.branch='jump'
-      elseif data.isJump==false and data.isCall==false and data.isRet==false then ins.branch='none' end
-      if data.parameterValueType==1 then ins.parameter_address=U.hex(data.parameterValue) end
-      if data.modrmValueType==1 then ins.memory_operand_address=U.hex(data.modrmValue) end
-      result.instructions[#result.instructions+1]=ins
-      cursor=cursor+#data.bytes
-    end
-    result.status=#result.bytes==48 and 'captured' or 'partial'
-  end,function(e) return tostring(e) end)
-  if d then pcall(function() d.destroy() end) end
-  if not ok then result.disassembly_error=failure end
-  return result
+  return nil
 end
 return M

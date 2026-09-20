@@ -686,58 +686,78 @@ test('RIP-relative subset and unknown coverage',function()
   )
 end)
 
-test('disassembly metadata, forward alignment and cleanup',function()
-  local destroyed=false
-
-  local api={
-    readBytes=function()
-      return {
-        0x90
-      }
-    end,
-
-    createDisassembler=function()
-      return {
-        disassemble=function()
-          return 'call 2000'
-        end,
-
-        getLastDisassembleData=function()
-          return {
-            bytes={
-              0xE8,
-              0,
-              0,
-              0,
-              0
-            },
-            opcode='call',
-            isCall=true,
-            parameterValueType=1,
-            parameterValue=0x2000
-          }
-        end,
-
-        destroy=function()
-          destroyed=true
-        end
-      }
-    end
-  }
-
-  local c=D.capture(
-    api,
-    0x1000,
-    'x64'
-  )
-
-  eq(c.status,'partial')
-  eq(#c.instructions,8)
-  eq(c.instructions[2].address,'0x1005')
-  eq(c.instructions[1].branch,'call')
-  eq(c.instructions[1].parameter_address,'0x2000')
-  assert(destroyed)
+test('disassembly wrapper omits context without CE API access',function()
+  local calls=0
+  local api=setmetatable({}, {__index=function()
+    calls=calls+1
+    error('No CE API access allowed')
+  end})
+  eq(D.capture(api,0x1000,'x64'),nil)
+  eq(calls,0)
 end)
+
+for _,mode in ipairs({'table','selected','validate','export','dependency_summary'}) do
+  test('P0-03 passive core never disassembles: '..mode,function()
+    local api,scans=mock({'1010'})
+    local calls=0
+    local function trap()
+      calls=calls+1
+      error('Unaudited API or disassembly wrapper invoked')
+    end
+    for _,name in ipairs({'disassemble','createDisassembler','getVisibleDisassembler',
+      'getDefaultDisassembler','getInstructionSize','splitDisassembledString',
+      'getPreviousOpcode','getLastDisassembleData','readBytes','getAddress',
+      'getAddressSafe','getNameFromAddress','autoAssemble','autoAssembleCheck',
+      'loadTable','saveTable','getLuaEngine'}) do api[name]=trap end
+    api.getCEVersion=function() return 7.7 end
+    api.targetIs64Bit=function() return true end
+    api.enumModules=function() return {{Name='test.exe',Address=0x1000}} end
+    api.getModuleSize=function() return 0x100 end
+    api.vtAutoAssembler=11
+    local record=setmetatable({ID=1,Index=0,Type=11,OffsetCount=0,Script=[[
+[ENABLE]
+aobscanmodule(p,test.exe,48 8B ??)
+p+17:
+{$lua}
+error('INSPECTED SOURCE MUST NEVER EXECUTE')
+P0_STATE=P0_STATE or {}
+{$asm}
+[DISABLE]
+]]}, {__index=function(_,key)
+      if key=='Address' or key=='Value' or key=='CurrentAddress' then return trap() end
+    end})
+    api.getAddressList=function()
+      return {Count=1,SelectedRecord=record,getMemoryRecord=function() return record end}
+    end
+    local function loader(name)
+      if name=='disassembly' then return {capture=trap} end
+      return require(name)
+    end
+    local core=assert(loadfile('ce/CESuite_Core.lua','t',
+      setmetatable({api=api,require=loader},{__index=_G})))()
+    local r
+    if mode=='export' then
+      local path=os.tmpname()
+      core.export(path)
+      local f=assert(io.open(path,'rb'));local text=f:read('*a');f:close();os.remove(path)
+      assert(not text:find('"context":',1,true))
+      r=core.last_report
+    else
+      r=core.analyze(mode=='dependency_summary' and 'table' or mode)
+    end
+    eq(#r.records,1);eq(#r.scripts,2);eq(#r.aobs,1)
+    assert(#r.dependencies>0 and #r.dependency_summary>0)
+    if mode=='validate' or mode=='export' then
+      eq(#scans,1);eq(r.aobs[1].match_count,1)
+      eq(r.aobs[1].uniqueness,'unique_current_scan')
+      eq(r.aobs[1].matches[1].signature_anchor,'0x1010')
+      eq(r.aobs[1].matches[1].context,nil)
+      eq(r.aobs[1].hook_candidates[1].hook_address,'0x1027')
+      eq(r.aobs[1].hook_candidates[1].context,nil)
+    else eq(#scans,0) end
+    eq(calls,0)
+  end)
+end
 
 test('JSON empty arrays, null, Unicode, escaping and cycles',function()
   eq(
@@ -1173,38 +1193,17 @@ test('bundle installs once and cleans only its own menu; export is fresh',functi
     error('Passive core analysis must not open Lua Engine')
   end
 
-  readBytes=function()
-    local b={}
-
-    for i=1,48 do
-      b[i]=0x90
-    end
-
-    return b
+  local disassemblyCalls=0
+  local function disassemblyTrap()
+    disassemblyCalls=disassemblyCalls+1
+    error('Bundle must not capture disassembly context')
   end
-
-  createDisassembler=function()
-    return {
-      disassemble=function()
-        return 'nop'
-      end,
-
-      getLastDisassembleData=function()
-        return {
-          opcode='nop',
-          bytes={
-            0x90
-          },
-          isCall=false,
-          isJump=false,
-          isRet=false
-        }
-      end,
-
-      destroy=function()
-      end
-    }
-  end
+  readBytes=disassemblyTrap
+  disassemble=disassemblyTrap
+  createDisassembler=disassemblyTrap
+  getInstructionSize=disassemblyTrap
+  getVisibleDisassembler=disassemblyTrap
+  getDefaultDisassembler=disassemblyTrap
 
   r=core.analyze('export')
 
@@ -1244,6 +1243,7 @@ dealloc(buffer)
     eq(captured.ct.table_lua_status,'unavailable')
   end
   eq(engineCalls,0)
+  eq(disassemblyCalls,0)
 
   core.shutdown()
 

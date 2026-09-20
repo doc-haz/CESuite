@@ -76,8 +76,8 @@ pointers, allocations, Lua calculations and symbol lookup callbacks are not eval
 AA `17` means hex 0x17 (23 decimal); Lua `17` means decimal 17.
 
 `match_count` is the complete FoundList count. Up to 256 addresses are exported;
-`matches_truncated` explicitly reports address-list truncation. Context is limited
-to the first 8 matches and first 8 resolved hook candidates. Counts are not truncated.
+`matches_truncated` explicitly reports address-list truncation. Optional byte/instruction context is omitted in passive capture (P0-03).
+Counts are not truncated.
 Results mean matches in **CE-readable scanned memory**: inaccessible pages and CE
 memory-type scan preferences can limit coverage. A zero count is not proof that a
 signature is absent from every possible page. The target is not paused; neither
@@ -99,13 +99,45 @@ label is not proof of a patch, valid instruction boundary or suitable overwrite 
 
 ## Disassembly and CE API coverage
 
-48 bytes starting 16 bytes before a candidate and up to 8 forward instructions are
-captured. Forward decoding starts at the candidate; its boundary is explicitly
-unverified. No guessed backward disassembly is presented as a known instruction
-stream. CE metadata identifies calls, returns and jumps and supplies operand
-addresses where available. A small documented byte-decoder subset recognizes
-RIP-relative legacy ModRM forms; unsupported SSE/VEX/EVEX and other forms remain
-`unknown`. This is not a complete decoder, effective-address evaluator or relocator.
+P0-03 omits optional context on AOB matches and hook candidates. CE disassemble
+can reach global overrides/callbacks even on a newly created disassembler.
+Core no longer supplies a context callback to AOB validation. The compatibility
+disassembly.capture wrapper returns nil without accessing any API. No replacement
+decoder API is used. The pure byte classifier remains unchanged and unused by
+runtime capture.
+
+Deliberately unavailable: neighboring 48-byte windows, forward instructions,
+instruction lengths, branch/RIP classifications and operand addresses. Signature
+anchors, match counts, inferred hook addresses and lexical analysis remain.
+The JSON schema and versions are unchanged: context was already optional.
+
+### P0-03 call-path audit and remaining review
+
+- Analyze Loaded Table and Inspect Selected Script: environment capture, record
+  inventory and lexical parsing; no AOB scan or disassembly.
+- Dependency Summary: table analysis followed by pure aggregation and JSON
+  display; no dependency resolution.
+- Validate AOBs and Export ChatGPT Report: fresh capture and scoped MemScan/
+  FoundList validation remain. Export encodes data and writes the selected file
+  with io.open; it does not request instruction context.
+- Environment calls: getOpenedProcessID, getCEVersion, targetIs64Bit, enumModules,
+  getModuleSize. Module Address is enumeration data, not MemoryRecord.Address.
+  Inventory uses getAddressList, getMemoryRecord and metadata/Script/OffsetText
+  getters; Address/current-value getters are not read.
+- AOB resolution is local literal/module/define arithmetic, with no getAddress,
+  getAddressSafe or getNameFromAddress. FoundList.Address is scan-result text.
+  autoAssemble*, loadTable, saveTable, getLuaEngine and inspected script execution
+  are absent. Parser references to API names are inert lexical data.
+- UI creates CESuite-owned menu/viewer controls and a save dialog. These deliberate
+  UI operations are separate from inspection of table source.
+
+Pending P0-04+ review only: native/transitive behavior of module-size lookup,
+enumeration and remaining property getters has not been certified by mocks;
+MemScan internals, temporary files and host/plugin overrides need their own
+audit. pcall catches errors but cannot prevent side effects. No user callbacks
+or plugins are removed, and scan controls/lifecycle semantics are unchanged.
+P0-03 establishes absence of the removed disassembly route, not universal
+passivity of every CE API or live x86/x64 integration.
 
 MemoryRecords use the documented address-list APIs. Standalone table Lua is
 reported as `table_lua_status: "unavailable"`: no audited passive source is
