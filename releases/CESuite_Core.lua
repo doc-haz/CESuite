@@ -189,8 +189,10 @@ function M.capture(api,report,selectedOnly)
     if not selectedOnly or r==selected or (selectedIndex~=nil and U.get(r,'Index')==selectedIndex) then
       local parent=U.get(r,'Parent')
       local parentKey=parent and (indexKeys[U.get(parent,'Index')] or keys[parent])
+      -- Address can evaluate dynamic offsets and execute Lua, even inside pcall.
+      -- Keep the nullable report field without resolving it during passive capture.
       local row={key=keys[r],id=U.get(r,'ID') or U.null,parent_key=parentKey or U.null,
-        description=U.get(r,'Description') or '',address=U.get(r,'Address') or U.null,
+        description=U.get(r,'Description') or '',address=U.null,
         variable_type=U.get(r,'Type') or U.null,active=U.get(r,'Active')==true,scripts=U.array(),offsets=U.array()}
       for j=0,(U.get(r,'OffsetCount') or 0)-1 do
         local ok,offset=pcall(function() return r.OffsetText[j] end)
@@ -206,13 +208,10 @@ function M.capture(api,report,selectedOnly)
     end
   end
   if selectedOnly and not selected then U.warn(report,'SELECTION-EMPTY','Select an AA MemoryRecord first.') end
-  -- Read the documented editor property, never execute it or serialize the table.
+  -- Lua Engine editor contents are not table Lua; getLuaEngine can create UI.
+  -- No audited passive table-Lua source is available in this capture path.
   if not selectedOnly then
-    local ok,text=pcall(function() return api.getLuaEngine().mScript.Lines.Text end)
-    if ok and type(text)=='string' then
-      addScript(text,'Lua',nil,'LuaEngine.mScript.Lines.Text')
-      report.ct.table_lua_status='editor_snapshot'
-    else U.warn(report,'TABLE-LUA-UNAVAILABLE','Table Lua editor unavailable; globals, closures and external files are not introspected.') end
+    U.warn(report,'TABLE-LUA-UNAVAILABLE','Table Lua unavailable: no audited passive source; Lua Engine editor contents are not table Lua.')
   end
   report.ct.status='captured'
   report.ct.loaded_table_version=U.get(al,'LoadedTableVersion') or U.null
@@ -1290,7 +1289,7 @@ function Core.analyze(mode)
         'Up to 256 addresses per AOB; context for first 8 matches and first 8 resolved hook candidates.',
         'Instruction boundaries, ownership, restore-before-free, overwrite length and relocation safety remain unverified.',
         'CE scan memory-type preferences and unreadable pages can limit coverage; no complete address-space accessibility claim.',
-        'Table Lua is an editor snapshot; external Lua files, closures and arbitrary globals are not captured.'})}
+        'Table Lua is unavailable: no audited passive source; Lua Engine editor contents, external Lua files, closures and arbitrary globals are not captured.'})}
     Env.capture(api,r)
     if mode~='process' then CT.capture(api,r,mode=='selected') end
     r.dependency_summary=Dependencies.summarize(r.dependencies)

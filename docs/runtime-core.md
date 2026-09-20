@@ -26,8 +26,8 @@ conservative Lua/RVA hook inventory.
    boundary; CESuite itself never executes that table's scripts.
 3. Use the **CESuite** menu:
    - **Analyze Current Process**: PID/name, architecture, modules/bases/sizes.
-   - **Analyze Loaded Table**: current MemoryRecords, AA, embedded Lua, table Lua
-     editor text and conservative lifecycle diagnostics; no scans.
+   - **Analyze Loaded Table**: current MemoryRecords, AA and embedded Lua;
+     standalone table Lua is reported unavailable; no scans.
    - **Validate AOBs**: fresh process/table snapshot followed by scoped scans.
    - **Inspect Selected Script**: inventory of the selected MemoryRecord.
    - **Export ChatGPT Report**: choose `CESuite_Runtime_Report.json`; collect a
@@ -107,9 +107,11 @@ addresses where available. A small documented byte-decoder subset recognizes
 RIP-relative legacy ModRM forms; unsupported SSE/VEX/EVEX and other forms remain
 `unknown`. This is not a complete decoder, effective-address evaluator or relocator.
 
-MemoryRecords use the documented address-list APIs. Table Lua uses
-`getLuaEngine().mScript.Lines.Text`: this is an editor snapshot which may include
-unsaved edits, not proof of executed source. External Lua files, runtime closures,
+MemoryRecords use the documented address-list APIs. Standalone table Lua is
+reported as `table_lua_status: "unavailable"`: no audited passive source is
+available in the current capture infrastructure. Passive capture never calls
+`getLuaEngine()` or reads its `mScript`: Lua Engine editor contents are not table
+Lua, and obtaining that window can create UI. External Lua files, runtime closures,
 arbitrary globals, table attachments and generated AA are not inspected. The core
 does not save/reload the table to obtain source. Existing active records may have
 already modified memory; they are marked with review diagnostics.

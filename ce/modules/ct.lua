@@ -48,13 +48,10 @@ function M.capture(api,report,selectedOnly)
     end
   end
   if selectedOnly and not selected then U.warn(report,'SELECTION-EMPTY','Select an AA MemoryRecord first.') end
-  -- Read the documented editor property, never execute it or serialize the table.
+  -- Lua Engine editor contents are not table Lua; getLuaEngine can create UI.
+  -- No audited passive table-Lua source is available in this capture path.
   if not selectedOnly then
-    local ok,text=pcall(function() return api.getLuaEngine().mScript.Lines.Text end)
-    if ok and type(text)=='string' then
-      addScript(text,'Lua',nil,'LuaEngine.mScript.Lines.Text')
-      report.ct.table_lua_status='editor_snapshot'
-    else U.warn(report,'TABLE-LUA-UNAVAILABLE','Table Lua editor unavailable; globals, closures and external files are not introspected.') end
+    U.warn(report,'TABLE-LUA-UNAVAILABLE','Table Lua unavailable: no audited passive source; Lua Engine editor contents are not table Lua.')
   end
   report.ct.status='captured'
   report.ct.loaded_table_version=U.get(al,'LoadedTableVersion') or U.null

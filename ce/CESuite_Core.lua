@@ -21,7 +21,7 @@ function Core.analyze(mode)
         'Up to 256 addresses per AOB; context for first 8 matches and first 8 resolved hook candidates.',
         'Instruction boundaries, ownership, restore-before-free, overwrite length and relocation safety remain unverified.',
         'CE scan memory-type preferences and unreadable pages can limit coverage; no complete address-space accessibility claim.',
-        'Table Lua is an editor snapshot; external Lua files, closures and arbitrary globals are not captured.'})}
+        'Table Lua is unavailable: no audited passive source; Lua Engine editor contents, external Lua files, closures and arbitrary globals are not captured.'})}
     Env.capture(api,r)
     if mode~='process' then CT.capture(api,r,mode=='selected') end
     r.dependency_summary=Dependencies.summarize(r.dependencies)

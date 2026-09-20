@@ -823,8 +823,8 @@ test('CT hierarchy, repeated IDs, selection and no activation',function()
   eq(#r.records,2)
   eq(r.records[2].parent_key,'record-1')
   eq(child.Active,false)
-  eq(r.ct.table_lua_status,'editor_snapshot')
-  eq(#r.scripts,2)
+  eq(r.ct.table_lua_status,'unavailable')
+  eq(#r.scripts,1)
 
   r=report()
 
@@ -837,6 +837,63 @@ test('CT hierarchy, repeated IDs, selection and no activation',function()
   eq(#r.records,1)
   eq(r.records[1].key,'record-2')
 end)
+
+for _,selectedOnly in ipairs({false,true}) do
+  for _,throws in ipairs({false,true}) do
+    test('passive table Lua unavailable: '..(selectedOnly and 'selected' or 'full')..(throws and ' throwing trap' or ' editor trap'),function()
+      local calls,windows,editorReads=0,0,0
+      local engineText='error("LUA ENGINE TEXT MUST NOT EXECUTE") -- ENGINE_ONLY_SENTINEL'
+      local source='[ENABLE]\n{$lua}\nerror("INSPECTED SOURCE MUST NOT EXECUTE")\n{$asm}\n[DISABLE]'
+      local parent={ID=1,Index=0,Description='Group',Type=0,OffsetCount=0}
+      local child={ID=2,Index=1,Parent=parent,Description='AA source',Type=11,
+        Script=source,Active=false,OffsetCount=1,OffsetText={[0]='10'}}
+      local api={vtAutoAssembler=11,getAddressList=function()
+        return {Count=2,SelectedRecord=child,LoadedTableVersion=45,
+          getMemoryRecord=function(i) return ({parent,child})[i+1] end}
+      end,getLuaEngine=function()
+        calls=calls+1
+        windows=windows+1
+        if throws then error('Passive capture opened Lua Engine') end
+        return setmetatable({},{__index=function(_,key)
+          if key=='mScript' then
+            editorReads=editorReads+1
+            return {Lines={Text=engineText}}
+          end
+        end})
+      end}
+      local r=report()
+      CT.capture(api,r,selectedOnly)
+      eq(calls,0)
+      eq(windows,0)
+      eq(editorReads,0)
+      eq(r.ct.status,'captured')
+      eq(r.ct.table_lua_status,'unavailable')
+      eq(r.ct.selection_only,selectedOnly)
+      eq(r.ct.loaded_table_version,45)
+      eq(#r.records,selectedOnly and 1 or 2)
+      local row=r.records[#r.records]
+      eq(row.key,'record-2')
+      eq(row.parent_key,'record-1')
+      eq(row.offsets[1],'10')
+      eq(child.Active,false)
+      eq(#r.scripts,2)
+      eq(r.scripts[2].language,'Lua')
+      eq(r.scripts[2].origin,'embedded')
+      eq(row.scripts[1],r.scripts[1].id)
+      eq(r.scripts[1].language,'AA')
+      eq(r.scripts[1].origin,'MemoryRecord.Script')
+      eq(r.scripts[1].text,source)
+      assert(not E.encode(r):find('ENGINE_ONLY_SENTINEL',1,true))
+      if not selectedOnly then
+        local warned=false
+        for _,d in ipairs(r.diagnostics) do
+          if d.rule=='TABLE-LUA-UNAVAILABLE' then warned=true end
+        end
+        assert(warned)
+      end
+    end)
+  end
+end
 
 for _,dynamic in ipairs({false,true}) do
   test('passive capture never reads Address: '..(dynamic and 'dynamic offsets' or 'simple record'),function()
@@ -1110,14 +1167,10 @@ test('bundle installs once and cleans only its own menu; export is fresh',functi
     }
   end
 
+  local engineCalls=0
   getLuaEngine=function()
-    return {
-      mScript={
-        Lines={
-          Text='-- synthetic table Lua'
-        }
-      }
-    }
+    engineCalls=engineCalls+1
+    error('Passive core analysis must not open Lua Engine')
   end
 
   readBytes=function()
@@ -1186,6 +1239,11 @@ dealloc(buffer)
     end}
   end
   core.export('ce/tests/generated-dependencies.json')
+  for _,mode in ipairs({'table','selected'}) do
+    local captured=core.analyze(mode)
+    eq(captured.ct.table_lua_status,'unavailable')
+  end
+  eq(engineCalls,0)
 
   core.shutdown()
 
