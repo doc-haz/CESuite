@@ -1,8 +1,8 @@
-# CESuite v0.1.9
+# CESuite
 
 A local analysis, diagnostics and evidence-export toolkit for Cheat Engine tables and attached processes.
 
-[Download v0.1.9](https://github.com/doc-haz/CESuite/releases/tag/v0.1.9) · [Installation](docs/installation.md) · [Runtime reference](docs/runtime-core.md)
+[Latest Release](https://github.com/doc-haz/CESuite/releases/latest) · [Installation](docs/installation.md) · [Runtime Reference](docs/runtime-core.md)
 
 ## What is CESuite?
 
