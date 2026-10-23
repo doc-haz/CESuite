@@ -142,6 +142,7 @@ end
 
 function M.lines(source)
   local out,lua,block,cblock=U.array(),false,false,false
+  local opaque,depth=false,0
   local n=0
   local luaState={}
 
@@ -149,21 +150,25 @@ function M.lines(source)
     n=n+1
     local trimmed=U.trim(raw):lower()
 
-    if not block and not cblock and not luaState.close and not luaState.quote and trimmed=='{$lua}' then
+    if not lua and not block and not cblock and not luaState.close and not luaState.quote and (trimmed=='{$lua}' or trimmed:match('^{%$luacode%f[%W]')) then
       lua=true
-      out[#out+1]={line=n,text='',directive='lua'}
+      opaque=trimmed~='{$lua}' or depth>0
+      out[#out+1]={line=n,text='',directive=opaque and 'opaque' or 'lua',note='OPAQUE-SOURCE'}
 
     elseif lua and not luaState.close and not luaState.quote and trimmed=='{$asm}' then
-      lua=false
+      lua=false;opaque=false
       out[#out+1]={line=n,text='',directive='asm'}
 
-    elseif lua and not luaState.close and not luaState.quote
+    elseif lua and not opaque and not luaState.close and not luaState.quote
       and (trimmed=='[enable]' or trimmed=='[disable]') then
       out[#out+1]={line=n,text=trimmed:upper(),luaSection=true}
 
     elseif lua then
+      if opaque and not luaState.close and not luaState.quote and (trimmed=='[enable]' or trimmed=='[disable]') then
+        out[#out+1]={line=n,text='',directive='opaque',note='SECTION-INDETERMINATE'}
+      end
       maskLua(raw,luaState)
-      out[#out+1]={line=n,text='',lua=raw}
+      out[#out+1]={line=n,text='',lua=not opaque and raw or nil}
 
     else
       local clean,quote,i='',nil,1
@@ -202,10 +207,10 @@ function M.lines(source)
 
         elseif c=='{' then
           if raw:sub(i,i+1)=='{$' then
-            clean=clean..raw:sub(i)
-            break
-          end
-          block=true
+            local finish=raw:find('}',i+2,true)
+            if not finish then clean=clean..raw:sub(i);break end
+            clean=clean..raw:sub(i,finish);i=finish
+          else block=true end
 
         else
           clean=clean..c
@@ -214,10 +219,56 @@ function M.lines(source)
         i=i+1
       end
 
-      out[#out+1]={line=n,text=U.trim(clean)}
+      clean=U.trim(clean)
+      -- Only scan directives outside AA comments/strings. A mixed directive line
+      -- is wholly opaque; its prefix is deliberately not interpreted as AA.
+      local directives={}
+      local q,j=nil,1
+      while j<=#clean do
+        local c=clean:sub(j,j)
+        if q then if c==q then q=nil end;j=j+1
+        elseif c=='"' or c=="'" then q=c;j=j+1
+        elseif clean:sub(j,j+1)=='{$' then
+          local name=clean:sub(j+2):match('^(%w+)')
+          if name then directives[#directives+1]={name=name:lower(),pos=j} end
+          local finish=clean:find('}',j+2,true)
+          if not finish then break end
+          j=finish+1
+        elseif clean:sub(j,j+7):lower()=='[enable]' or clean:sub(j,j+8):lower()=='[disable]' then
+          directives[#directives+1]={name='section_header',pos=j};j=j+1
+        else j=j+1 end
+      end
+      local handled=false
+      for _,d in ipairs(directives) do
+        if d.name=='luacode' or d.name=='lua' then
+          lua=true
+          opaque=d.name=='luacode' or depth>0 or clean:lower()~='{$lua}'
+          out[#out+1]={line=n,text='',directive=opaque and 'opaque' or 'lua',note='OPAQUE-SOURCE'}
+          handled=true;break
+        elseif d.name=='ifdef' or d.name=='ifndef' then
+          depth=depth+1;handled=true
+          out[#out+1]={line=n,text='',directive='opaque',note='CONDITIONAL-SOURCE'}
+        elseif d.name=='section_header' and depth>0 then
+          out[#out+1]={line=n,text='',directive='opaque',note='SECTION-INDETERMINATE'}
+          handled=true
+        elseif d.name=='endif' then
+          out[#out+1]={line=n,text='',directive='opaque',note=depth==0 and 'CONDITIONAL-UNMATCHED' or 'CONDITIONAL-SOURCE'}
+          depth=math.max(0,depth-1);handled=true
+        end
+      end
+      if not handled then
+        if depth>0 then
+          if clean:lower()=='[enable]' or clean:lower()=='[disable]' then
+            out[#out+1]={line=n,text='',directive='opaque',note='SECTION-INDETERMINATE'}
+          else out[#out+1]={line=n,text=''} end
+        else out[#out+1]={line=n,text=clean} end
+      end
     end
   end
 
+  if depth>0 or (lua and opaque) then
+    out[#out+1]={line=n,text='',directive='opaque',note='OPAQUE-INCOMPLETE'}
+  end
   return out
 end
 
@@ -263,7 +314,7 @@ local function parseByteArray(text)
   return bytes
 end
 
-local function inspectLuaHook(text,script,report,line)
+local function inspectLuaHook(text,script,report,line,section)
   if type(text)~='string' then
     return
   end
@@ -310,7 +361,7 @@ local function inspectLuaHook(text,script,report,line)
   report.resources[#report.resources+1]={
     script_id=script.id,
     line=line,
-    section='enable',
+    section=section,
     command='lua_rva_hook',
     arguments=U.array({
       module,
@@ -342,14 +393,12 @@ end
 
 local scopes={
   aobscan='process',
-  aobscanmodule='module',
-  aobscanregion='region'
+  aobscanmodule='module'
 }
 
 local counts={
   aobscan=2,
-  aobscanmodule=3,
-  aobscanregion=4
+  aobscanmodule=3
 }
 
 -- Deliberately narrow: no quoted names, expressions, macros or numeric addresses.
@@ -422,7 +471,8 @@ function M.inspect(script,report)
         text,
         script,
         report,
-        luaLine
+        luaLine,
+        luaSection
       )
 
       luaText={}
@@ -433,7 +483,13 @@ function M.inspect(script,report)
   for _,row in ipairs(lines) do
     local s=row.text
 
-    if row.luaSection then
+    if row.directive=='opaque' then
+      flushLua()
+      script.dynamic=true
+      if row.note=='SECTION-INDETERMINATE' then section='unknown' end
+      if section=='disable' then disableContent=true end
+      U.warn(report,row.note,'Opaque source; conditional branches are not evaluated and no execution semantics are inferred.',script.id,row.line)
+    elseif row.luaSection then
       flushLua()
       section=s:lower():sub(2,-2)
       if section=='disable' then disable=true end
@@ -472,6 +528,13 @@ function M.inspect(script,report)
       local cmd,raw=s:match('^([%w_]+)%s*%((.*)%)%s*$')
       cmd=cmd and cmd:lower()
       local args=raw and M.arguments(raw)
+      local opaqueCommand=s:lower():match('^([%w_]+)%s*%(')
+      if opaqueCommand=='hook' or opaqueCommand=='unhook' or opaqueCommand=='hook5'
+        or opaqueCommand=='aobscanfunction' or opaqueCommand=='aobscanregion' then
+        script.dynamic=true
+        U.warn(report,'OPAQUE-COMMAND','Post-source command '..opaqueCommand..' observed lexically; unsupported semantics.',script.id,row.line)
+        cmd=nil;args=nil;s=''
+      end
       if cmd then commandDependencies(report,script,row,section,cmd,args) end
 
       if scopes[cmd] then

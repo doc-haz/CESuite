@@ -17,7 +17,7 @@ from build_ce import build, version
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(library, script='ce/tests/runtime_spec.lua', package_path=None):
+def run(library, script='ce/tests/runtime_spec.lua', package_path=None, output_path=None):
     lib = ctypes.CDLL(str(library))
     lib.luaL_newstate.restype = ctypes.c_void_p
     lib.luaL_openlibs.argtypes = [ctypes.c_void_p]
@@ -38,6 +38,9 @@ def run(library, script='ce/tests/runtime_spec.lua', package_path=None):
         if package_path is not None:
             lib.lua_pushstring(state, str(package_path).encode('utf-8'))
             lib.lua_setglobal(state, b'CESUITE_TEST_PACKAGE')
+        if output_path is not None:
+            lib.lua_pushstring(state, str(output_path).encode('utf-8'))
+            lib.lua_setglobal(state, b'CESUITE_TEST_OUTPUT')
         status = lib.luaL_loadfilex(state, script.encode('utf-8'), None)
         if not status:
             status = lib.lua_pcallk(state, 0, 0, 0, 0, None)
@@ -53,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--library', type=Path, required=True)
     library = parser.parse_args().library.resolve()
     run(library)
+    run(library, 'ce/tests/module_dump_spec.lua')
     with tempfile.TemporaryDirectory(prefix='CESuite test ') as directory:
         output = Path(directory)
         build(output)

@@ -28,7 +28,7 @@ class AnalyzerTests(unittest.TestCase):
 
     def test_scopes_comments_sections_and_cleanup(self):
         r = analyze(table('[ENABLE]\n// alloc(fake,20)\n{dealloc(*)}\naobscan(a,AA ??)\naobscanregion(b,start,stop,BB *)\n[DISABLE]\ndealloc(*)\nunregistersymbol(*)'))
-        self.assertEqual([a['scope'] for a in r['aobs']], ['process', 'region'])
+        self.assertEqual([a['scope'] for a in r['aobs']], ['process'])
         self.assertEqual(len(r['allocations']), 1)
         self.assertEqual(r['allocations'][0]['section'], 'disable')
         self.assertEqual(sum(w['rule'] == 'RESOURCE-OWNERSHIP' for w in r['warnings']), 2)

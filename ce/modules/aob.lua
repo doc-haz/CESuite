@@ -1,5 +1,6 @@
 local U=require('util')
 local M={}
+local moduleMatch=U.moduleMatch
 -- Resolve only numbers, enumerated modules and simple +/- constants. No CE symbol
 -- lookup: registered callbacks can execute arbitrary table code during lookup.
 function M.resolve(expression, modules, defines, seen)
@@ -14,13 +15,17 @@ function M.resolve(expression, modules, defines, seen)
   end
   local n=U.number(s)
   if n then return n end
-  local name=U.unquote(s):lower()
-  for _,m in ipairs(modules) do
-    if m.name:lower()==name and type(m.base)=='string' then return tonumber(m.base:sub(3),16) end
+  local m,reason=moduleMatch(s,modules)
+  if reason and reason:match('^ambiguous') then return nil,reason end
+  if m then
+    local address=type(m.base)=='string' and tonumber(m.base:sub(3),16) or nil
+    if address then return address end
+    return nil,'module base unavailable'
   end
   local base,op,offset=s:match('^(.-)%s*([+-])%s*([%x#xX$]+)$')
   if base then
-    local b=M.resolve(base,modules,defines,seen)
+    local b,reason=M.resolve(base,modules,defines,seen)
+    if reason and reason:match("^ambiguous") then return nil,reason end
     local o=U.number(offset)
     if b and o then local v=b+(op=='+' and o or -o);if v>=0 then return v end end
   end
@@ -41,13 +46,11 @@ end
 function M.bounds(a,report,script)
   if a.scope=='process' then return 0,-1 end -- unsigned all-addresses sentinel, no symbol lookup
   if a.scope=='module' then
-    local name=U.unquote(a.arguments[2]):lower()
-    for _,m in ipairs(report.modules) do
-      if m.name:lower()==name and type(m.base)=='string' and type(m.size)=='number' and m.size>0 then
-        local base=tonumber(m.base:sub(3),16)
-        -- AA passes module base + image size as its stop argument too.
-        return base,base+m.size
-      end
+    local m,reason=moduleMatch(a.arguments[2],report.modules)
+    if reason then return nil,nil,reason..'; scope was not broadened.' end
+    if m and type(m.base)=='string' and type(m.size)=='number' and m.size>0 then
+      local base=tonumber(m.base:sub(3),16)
+      if base then return base,base+m.size end
     end
     return nil,nil,'Module name/size unavailable; scope was not broadened.'
   end

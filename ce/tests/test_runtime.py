@@ -1,4 +1,7 @@
 import copy
+import os
+import sys
+import ctypes.util
 import importlib.util
 import json
 from pathlib import Path
@@ -16,12 +19,34 @@ spec.loader.exec_module(builder)
 
 
 class RuntimeContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(ROOT / 'tools'))
+        from run_lua_tests import run
+        library = os.environ.get('CESUITE_LUA_LIBRARY') or ctypes.util.find_library('lua5.3')
+        library = library or 'C:/Program Files/Cheat Engine/lua53-64.dll'
+        cls.generated_directory = tempfile.TemporaryDirectory(prefix='CESuite contract ')
+        cls.addClassCleanup(cls.generated_directory.cleanup)
+        cls.generated = Path(cls.generated_directory.name)
+        run(Path(library), output_path=cls.generated.as_posix())
+
     def setUp(self):
-        self.schema = json.loads((ROOT / 'schemas/runtime-report.schema.json').read_text())
+        self.schema = json.loads((ROOT / 'schemas/runtime-report.schema.json').read_text(encoding='utf-8'))
         self.validator = Draft202012Validator(self.schema)
 
+    def test_unknown_section_provenance_contract(self):
+        report = self.profile_report()
+        for key in ('resources', 'aobs', 'dependencies'):
+            for row in report[key]: row['section'] = 'unknown'
+        for group in report['dependency_summary']:
+            group['sections'] = ['unknown']
+            for location in group['locations']: location['section'] = 'unknown'
+        self.validator.validate(report)
+        report['resources'][0]['section'] = 'invented'
+        with self.assertRaises(ValidationError): self.validator.validate(report)
+
     def test_legacy_014_report_needs_no_migration(self):
-        report = json.loads((ROOT / 'fixtures/runtime-v0.1.4.json').read_text())
+        report = json.loads((ROOT / 'fixtures/runtime-v0.1.4.json').read_text(encoding='utf-8'))
         self.assertEqual(report['core_version'], '0.1.4')
         self.assertNotIn('dependency_summary', report)
         self.validator.validate(report)
@@ -30,12 +55,12 @@ class RuntimeContractTests(unittest.TestCase):
             self.validator.validate(report)
 
     def profile_report(self):
-        return json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+        return json.loads((self.generated / 'generated-dependencies.json').read_text(encoding='utf-8'))
 
     def test_profile_optional_for_legacy_and_current_reports(self):
         report = self.profile_report()
         del report['semantics_profile']
-        for version in ['0.1.0', '0.1.1', '0.1.2', '0.1.3', '0.1.4', '0.1.5', '0.1.6']:
+        for version in ['0.1.0', '0.1.1', '0.1.2', '0.1.3', '0.1.4', '0.1.5', '0.1.6', '0.1.7', '0.1.8', '0.1.9']:
             report['core_version'] = version
             self.validator.validate(report)
 
@@ -98,8 +123,8 @@ class RuntimeContractTests(unittest.TestCase):
 
     def test_summary_indices_counts_and_identity_match_original_occurrences(self):
         for name in ['generated-report.json', 'generated-observed.json', 'generated-dependencies.json']:
-            report = json.loads((ROOT / 'ce/tests' / name).read_text())
-            self.assertEqual(report['core_version'], '0.1.6')
+            report = json.loads((self.generated / name).read_text(encoding='utf-8'))
+            self.assertEqual(report['core_version'], '0.1.9')
             self.validator.validate(report)
             visited, identities = [], set()
             for group in report['dependency_summary']:
@@ -122,7 +147,7 @@ class RuntimeContractTests(unittest.TestCase):
             self.assertEqual(sorted(visited), list(range(1, len(report['dependencies']) + 1)))
 
     def test_summary_contract_rejects_missing_invalid_and_verified_evidence(self):
-        report = json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+        report = json.loads((self.generated / 'generated-dependencies.json').read_text(encoding='utf-8'))
         missing = copy.deepcopy(report)
         del missing['dependency_summary']
         with self.assertRaises(ValidationError):
@@ -145,11 +170,11 @@ class RuntimeContractTests(unittest.TestCase):
     def test_schema_and_real_lua_serialization(self):
         Draft202012Validator.check_schema(self.schema)
         for name in ['generated-report.json', 'generated-observed.json', 'generated-dependencies.json']:
-            report = json.loads((ROOT / 'ce/tests' / name).read_text(encoding='utf-8'))
+            report = json.loads((self.generated / name).read_text(encoding='utf-8'))
             self.validator.validate(report)
 
     def test_reject_false_uniqueness_and_scope_changes(self):
-        report = json.loads((ROOT / 'ce/tests/generated-observed.json').read_text())
+        report = json.loads((self.generated / 'generated-observed.json').read_text(encoding='utf-8'))
         self.validator.validate(report)
         legacy = copy.deepcopy(report)
         legacy['core_version'] = '0.1.0'
@@ -162,7 +187,7 @@ class RuntimeContractTests(unittest.TestCase):
                 self.validator.validate(changed)
 
     def test_dependencies_are_required_only_for_new_core_and_remain_unverified(self):
-        report = json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+        report = json.loads((self.generated / 'generated-dependencies.json').read_text(encoding='utf-8'))
         self.validator.validate(report)
         self.assertGreater(len(report['dependencies']), 0)
         missing = copy.deepcopy(report)
@@ -180,7 +205,7 @@ class RuntimeContractTests(unittest.TestCase):
                 self.validator.validate(changed)
 
     def test_lua_dependency_provenance_contract(self):
-        report = json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+        report = json.loads((self.generated / 'generated-dependencies.json').read_text(encoding='utf-8'))
         rows = [d for d in report['dependencies'] if d['source'] == 'lua_lexical']
         self.assertEqual([(d['name'], d['relation']) for d in rows],
                          [('MOD_PLAYER', 'requires'), ('MOD_GODMODE', 'provides')])
@@ -197,7 +222,7 @@ class RuntimeContractTests(unittest.TestCase):
                     self.validator.validate(changed)
 
     def test_lua_schema_accepts_generic_names_in_occurrences_and_summary(self):
-        report = json.loads((ROOT / 'ce/tests/generated-dependencies.json').read_text())
+        report = json.loads((self.generated / 'generated-dependencies.json').read_text(encoding='utf-8'))
         for name in ['GAME_STATE', 'modPlayer', '_privateFlag', 'customHelper']:
             changed = copy.deepcopy(report)
             for row in changed['dependencies'] + changed['dependency_summary']:

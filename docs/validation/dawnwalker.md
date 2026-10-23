@@ -2,12 +2,13 @@
 
 This is an explicit regression case, not a naming rule or application-specific
 feature. `fixtures/validation/dawnwalker-replay.json` records the exact cached
-input SHA-256 and expected metrics. The source report remains local; it is not
+input SHA-256 and expected metrics. The source report is private and not available in this repository; it is not
 bundled with the runtime or required by the synthetic suite.
 
-Both the pre-generalized parser and the generic parser were run against the same
-cached AA/Lua source text, without executing that text. Complete `dependencies`,
-`resources` and `dependency_summary` arrays matched, including provenance.
+The following are **historical observations**, not a successful replay of the
+current 0.1.9 candidate. The exact private source input has not been found in
+this repository during this mission. Current preservation is **pending revalidation**;
+these counts must not be used as a passed gate for this candidate.
 
 | Metric | Before | Generic detector |
 | --- | --- | --- |
@@ -22,9 +23,10 @@ The retained application-specific names are evidence only. No such prefix occurs
 in a parser condition, schema constraint or environment exclusion set. CE `pause`,
 `unpause` and `speedhack_setSpeed` are excluded as documented CE APIs.
 
-## Reproduce with the retained private report
+## Optional private-input gate (not reproducible from a clean clone alone)
 
-From the repository root, replace the input path with the retained report and
+Only when the DG supplies the exact input matching the manifest hash, from the
+repository root replace the input path with the retained report and
 use an existing output directory:
 
 ```powershell

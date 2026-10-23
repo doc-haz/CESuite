@@ -56,11 +56,11 @@ not a complete changelog or a feature support matrix.
 
 ## Compatibility and remaining scope
 
-Core identifies itself as `0.1.6`; schema version stays `0.1` for this additive
+Current Core identifies itself as `0.1.9`; schema version stays `0.1` for this additive
 extension. The new schema accepts valid old Core 0.1.0–0.1.5 reports without
-`semantics_profile`. The profile remains optional even for 0.1.6. If present,
+`semantics_profile`. The profile remains optional through 0.1.9. If present,
 its fields are required and additional fields are rejected. Existing requirements
-continue: dependencies for 0.1.4–0.1.6, dependency_summary for 0.1.5–0.1.6.
+continue: dependencies for 0.1.4–0.1.9, dependency_summary for 0.1.5–0.1.9.
 Unchanged old validators can reject new reports because of their core-version
 enum and root `additionalProperties: false`; compatibility is old data read by
 the new schema, not new data read by old validators.
@@ -70,8 +70,12 @@ Lua/RVA inventory, lifecycle and passive capture retain their existing semantics
 Profile metadata does not resolve a dependency or establish ownership, hook
 safety, runtime availability or source/runtime equivalence.
 
-P0-05 opaque/conditional constructs, P0-06 ambiguous modules and P0-07 broader
-regression/documentation closure remain separate work. This profile neither
-implements them nor resolves those risks. No P1/P2 feature support is added.
+The 0.1.9 tree implements conservative P0-05 boundaries and P0-06 ambiguity
+checks separately from this metadata profile. See [closure status](p0-closure.md)
+for regression evidence and pending independent/live review. No P1/P2 feature support is added.
 Synthetic tests validate the report contract only; live CE compatibility remains
 unverified for this increment.
+
+Section `unknown` is a provenance state introduced by the local 0.1.9 audit
+correction. It is accepted in resources, AOBs, dependency occurrences and summary
+locations/sections; it does not upgrade the evidence profile or evaluate branches.

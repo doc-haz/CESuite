@@ -16,10 +16,21 @@ function M.capture(api, report)
   if type(x64)=='boolean' then target.architecture=x64 and 'x64' or 'x86' end
   local modules, failure=U.call(api,'enumModules')
   if type(modules)~='table' then U.warn(report,'MODULES-UNAVAILABLE',failure or 'Module enumeration failed'); return end
+  -- Resolve the exact same name/path candidate set used by AOB bounds.
   for _,m in ipairs(modules) do
-    local size=U.call(api,'getModuleSize',m.Name)
-    table.insert(report.modules,{name=m.Name,base=U.hex(m.Address),size=type(size)=='number' and size or U.null,
+    table.insert(report.modules,{name=m.Name or U.null,base=U.hex(m.Address),size=U.null,
       path=m.PathToFile or U.null,architecture=m.Is64Bit==nil and 'unknown' or (m.Is64Bit and 'x64' or 'x86')})
+  end
+  for i,m in ipairs(modules) do
+    local candidate,reason=U.moduleMatch(m.Name,report.modules)
+    local _,pathReason=U.moduleMatch(m.PathToFile,report.modules)
+    if pathReason and pathReason:match('^ambiguous') then candidate=nil;reason=pathReason end
+    if not candidate then
+      U.warn(report,'MODULE-SNAPSHOT-INCOMPLETE',tostring(reason)..'; size lookup omitted.')
+    else
+      local size=U.call(api,'getModuleSize',m.Name)
+      report.modules[i].size=type(size)=='number' and size or U.null
+    end
   end
 end
 return M

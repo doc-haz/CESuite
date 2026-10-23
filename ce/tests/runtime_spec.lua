@@ -1,4 +1,13 @@
 package.path='ce/modules/?.lua;'..package.path
+-- Freeze observation timestamps only in the isolated fixture-generation state.
+-- Production modules and standalone live observations retain the real clock.
+if CESUITE_TEST_OUTPUT then
+  local realDate=os.date
+  os.date=function(format,...)
+    if format=='!%Y-%m-%dT%H:%M:%SZ' then return '2026-10-22T00:00:00Z' end
+    return realDate(format,...)
+  end
+end
 
 local U=require('util')
 local P=require('parser')
@@ -294,13 +303,13 @@ end)
 
 test('AOB global resources and duplicate names stay lexical in every section',function()
   local r=report('aobscan(anchor,90)\naobscanmodule(modanchor,test.exe,90)\naobscanregion(regionanchor,1000,2000,90)\nglobalalloc(shared,16)\n[DISABLE]\nalloc(buffer,16)\nlabel(shared)')
-  eq(#r.dependencies,8)
-  eq(r.dependencies[1].name,'anchor');eq(r.dependencies[3].name,'regionanchor')
-  eq(r.dependencies[4].kind,'resource');eq(r.dependencies[6].section,'disable')
+  eq(#r.dependencies,7)
+  eq(r.dependencies[1].name,'anchor');eq(r.dependencies[2].name,'modanchor')
+  eq(r.dependencies[3].kind,'resource');eq(r.dependencies[5].section,'disable')
   P.inspect({id='second',text='registersymbol(shared)\nregistersymbol(shared)'},r)
-  eq(#r.dependencies,12)
-  eq(r.dependencies[9].script_id,'second');eq(r.dependencies[11].line,2)
-  eq(r.dependencies[9].status,'unverified')
+  eq(#r.dependencies,11)
+  eq(r.dependencies[8].script_id,'second');eq(r.dependencies[10].line,2)
+  eq(r.dependencies[8].status,'unverified')
 end)
 
 test('generic globals provide without a naming prefix or capitalization rule',function()
@@ -499,7 +508,7 @@ aobscan(real,AA ??) // comment
   assert(empty)
 end)
 
-test('all three scopes retain their exact scan bounds',function()
+test('classic scopes retain exact bounds; post-source region stays opaque',function()
   local r=report(
     'aobscan(p,AA BB)\n'..
     'aobscanmodule(m,"test.exe",AA BB)\n'..
@@ -510,21 +519,20 @@ test('all three scopes retain their exact scan bounds',function()
 
   A.validate(api,r,context)
 
-  eq(#calls,3)
+  eq(#calls,2)
+  eq(#r.aobs,2)
   eq(calls[1][6],0)
   eq(calls[1][7],-1)
 
   eq(calls[2][6],0x1000)
   eq(calls[2][7],0x1100)
 
-  eq(calls[3][6],0x1010)
-  eq(calls[3][7],0x1030)
 
   eq(calls[1][8],'*X*C*W')
   eq(calls[1][9],0)
 
   eq(r.aobs[1].uniqueness,'unique_current_scan')
-  eq(#freed,6)
+  eq(#freed,4)
   eq(freed[1],'list')
   eq(freed[2],'scan')
 end)
@@ -558,7 +566,7 @@ test('unresolved scope never broadens and arbitrary expressions never execute',f
 
   eq(#calls,0)
   eq(r.aobs[1].status,'unresolved')
-  eq(r.aobs[2].status,'unresolved')
+  eq(#r.aobs,1)
 end)
 
 test('hook candidate offset is AA hexadecimal, anchor remains separate',function()
@@ -1187,7 +1195,7 @@ test('bundle installs once and cleans only its own menu; export is fresh',functi
   eq(r.target.attached,false)
 
   core.export(
-    'ce/tests/generated-report.json'
+    (CESUITE_TEST_OUTPUT or 'ce/tests')..'/generated-report.json'
   )
 
   local fake=mock({'1010'})
@@ -1267,7 +1275,7 @@ test('bundle installs once and cleans only its own menu; export is fresh',functi
   )
 
   core.export(
-    'ce/tests/generated-observed.json'
+    (CESUITE_TEST_OUTPUT or 'ce/tests')..'/generated-observed.json'
   )
 
   getAddressList=function()
@@ -1291,7 +1299,7 @@ dealloc(buffer)
 ]]}
     end}
   end
-  core.export('ce/tests/generated-dependencies.json')
+  core.export((CESUITE_TEST_OUTPUT or 'ce/tests')..'/generated-dependencies.json')
   for _,mode in ipairs({'table','selected'}) do
     local captured=core.analyze(mode)
     eq(captured.ct.table_lua_status,'unavailable')
@@ -1302,6 +1310,145 @@ dealloc(buffer)
   core.shutdown()
 
   eq(destroyed,1)
+end)
+
+
+test('P0-05 luacode masks commands and fake exits in long comments',function()
+  for _,ending in ipairs({'', '\n{$asm}\nalloc(real,16)'}) do
+    local r=report('{$luacode someArg}\n{$lua}\nalloc(fake,16)\naobscanmodule(fake,game.exe,90)\nregistersymbol(fake)\n--[=[\n{$asm}\nalloc(commentFake,16)\n]=]'..ending)
+    eq(#r.aobs,0);eq(#r.resources,ending=='' and 0 or 1)
+    eq(#r.dependencies,ending=='' and 0 or 2)
+    eq(#r.scripts,1)
+    if ending~='' then eq(r.resources[1].arguments[1],'real') end
+  end
+end)
+
+test('P0-05 incomplete Lua comments cannot escape opaque luacode',function()
+  local r=report('{$luacode}\n--[[\n{$asm}\nalloc(fake,16)')
+  eq(#r.resources,0);eq(#r.dependencies,0);eq(#r.aobs,0)
+end)
+
+test('P0-05 nested unknown branches and unmatched endif stay lexical',function()
+  local r=report('{$ifdef X}\nalloc(fake,16)\n{$ifndef Y}\naobscan(fake,90)\n{$endif}\n{$endif}\n{$endif}\nalloc(real,16)')
+  eq(#r.aobs,0);eq(#r.resources,1);eq(r.resources[1].arguments[1],'real')
+  local unmatched=false
+  for _,w in ipairs(r.diagnostics) do if w.rule=='CONDITIONAL-UNMATCHED' then unmatched=true end end
+  assert(unmatched)
+  local incomplete=report('{$ifdef X}\nregistersymbol(fake)')
+  eq(#incomplete.dependencies,0)
+end)
+
+test('P0-05 post-source complex arguments never become classic semantics',function()
+  for _,cmd in ipairs({'HOOK','UNHOOK','HOOK5','aobscanfunction','aobscanregion'}) do
+    local r=report(cmd..'(symbol,fn("a,b",nested(1,2)),90)\nalloc(real,16)')
+    eq(#r.aobs,0);eq(#r.resources,1);eq(#r.dependencies,2)
+    local opaque=false
+    for _,w in ipairs(r.diagnostics) do if w.rule=='OPAQUE-COMMAND' then opaque=true end end
+    assert(opaque)
+  end
+end)
+
+test('P0-06 duplicate names and paths abstain before checking metadata',function()
+  local modules={{name='game.exe',path='C:/one/game.exe',base='0x1000',size=256},
+    {name='GAME.EXE',path='D:/two/game.exe',base='0x2000',size=512}}
+  local value,reason=A.resolve('game.exe+10',modules)
+  eq(value,nil);assert(reason:find('ambiguous'))
+  eq(A.resolve('C:\\one\\game.exe',modules),0x1000)
+  eq(A.resolve('alias',modules,{alias='game.exe'}),nil)
+  local r=report('aobscanmodule(p,game.exe,90)');r.modules=modules
+  local api,calls=mock({'1000'});A.validate(api,r,context)
+  eq(#calls,0);eq(r.aobs[1].status,'unresolved');assert(r.aobs[1].message:find('ambiguous'))
+  modules[2].base=nil
+  eq(A.resolve('game.exe',modules),nil)
+  modules[2].name='other.exe'
+  eq(A.resolve('game.exe',modules),nil) -- path basename is still ambiguous
+  modules[2].path=modules[1].path
+  eq(A.resolve('C:/one/game.exe',modules),nil)
+end)
+
+test('P0-06 duplicate snapshot skips ambiguous size API',function()
+  local calls=0
+  local r={diagnostics=U.array()}
+  Env.capture({getOpenedProcessID=function() return 123 end,
+    enumModules=function() return {{Name='game.exe',Address=4096},{Name='GAME.EXE',Address=8192}} end,
+    getModuleSize=function() calls=calls+1;return 100 end},r)
+  eq(calls,0);eq(r.modules[1].size,U.null);eq(r.modules[2].size,U.null)
+  eq(r.diagnostics[1].rule,'MODULE-SNAPSHOT-INCOMPLETE')
+end)
+
+
+test('F-01 incomplete luacode fails closed',function()
+  local r=report('{$luacode\nalloc(fake,16)\naobscan(fake,90)\nlabel(fake)\ndefine(fake,real)\nfake:')
+  eq(#r.resources,0);eq(#r.dependencies,0);eq(#r.aobs,0)
+  eq(#r.scripts[1].labels,0);eq(next(r.scripts[1].defines),nil)
+  local incomplete=false
+  for _,w in ipairs(r.diagnostics) do if w.rule=='OPAQUE-INCOMPLETE' then incomplete=true end end
+  assert(incomplete)
+end)
+test('F-02 embedded luacode masks whole line and body',function()
+  local r=report('alloc(prefix,16) {$luacode}\nalloc(fake,16)\n{$asm}\nalloc(real,16)')
+  eq(#r.resources,1);eq(r.resources[1].arguments[1],'real');eq(#r.dependencies,2)
+end)
+test('F-03 every conditional on a line updates depth',function()
+  for _,prefix in ipairs({'{$ifdef X}{$endif}','{$ifndef X}{$endif}',
+    '{$ifdef X}{$ifndef Y}{$endif}{$endif}','{$ifdef X}{$endif}{$endif}'}) do
+    local r=report(prefix..'\nalloc(real,16)');eq(#r.resources,1)
+    eq(r.resources[1].arguments[1],'real')
+  end
+end)
+test('F-04 conditional sections stay unknown until explicit header',function()
+  for _,header in ipairs({'[ENABLE]','[DISABLE]'}) do
+    local r=report('[ENABLE]\n{$ifdef X}\n'..header..'\n{$endif}\nalloc(real,16)\naobscan(anchor,90)\n[DISABLE]\ndealloc(real)')
+    eq(r.resources[1].section,'unknown');eq(r.aobs[1].section,'unknown')
+    eq(r.dependencies[1].section,'unknown');eq(r.resources[2].section,'disable')
+  end
+end)
+test('F-05 empty and invalid module queries never scan',function()
+  for _,query in ipairs({'','   ','""',false,42,U.null}) do
+    eq(U.moduleNorm(query),nil)
+    local m,reason=U.moduleMatch(query,{{name='test.exe',path=U.null}})
+    eq(m,nil);assert(reason:find('invalid'))
+  end
+  local r=report('aobscanmodule(x,,90)');r.modules[1].path=U.null
+  local api,calls=mock({'1000'});A.validate(api,r,context)
+  eq(#calls,0);eq(r.aobs[1].status,'unresolved')
+end)
+test('F-06 snapshot and resolver share name and path ambiguity',function()
+  local cases={
+    {{Name='game.exe',PathToFile='C:/one/game.exe',Address=4096},{Name='GAME.EXE',PathToFile='D:/two/game.exe',Address=8192}},
+    {{Name='one.exe',PathToFile='C:/same/game.exe',Address=4096},{Name='other.exe',PathToFile='c:\\SAME\\GAME.EXE',Address=8192}},
+    {{Name='game.exe',PathToFile='C:/one/game.exe',Address=4096},{Name='other.exe',PathToFile='D:/two/game.exe',Address=8192}},
+    {{Name='one.exe',PathToFile=U.null,Address=4096},{Name='two.exe',Address=8192}},
+    {{Name='C:/one/game.exe',PathToFile='C:/one/game.exe',Address=4096},{Name='D:/two/game.exe',PathToFile='D:/two/game.exe',Address=8192}}
+  }
+  for _,modules in ipairs(cases) do
+    local lookups={};local r={diagnostics=U.array()}
+    Env.capture({getOpenedProcessID=function() return 7 end,enumModules=function() return modules end,
+      getModuleSize=function(name) lookups[name]=true;return 256 end},r)
+    for i,m in ipairs(modules) do
+      local found=U.moduleMatch(m.Name,r.modules)
+      local _,pathReason=U.moduleMatch(m.PathToFile,r.modules)
+      if pathReason and pathReason:find('ambiguous') then found=nil end
+      eq(r.modules[i].size,found and 256 or U.null)
+      eq(lookups[m.Name] or false,found and true or false)
+    end
+  end
+  local modules={{name='game.exe',path='C:/one/game.exe',base='0x1000',size=256},
+    {name='game.exe',path='D:/two/game.exe',base='0x2000',size=512}}
+  eq(A.resolve('C:/one/game.exe',modules),4096)
+  eq(A.resolve('game.exe',modules),nil)
+  modules[2].path='c:\\ONE\\GAME.EXE'
+  eq(A.resolve('C:/one/game.exe',modules),nil)
+  local r=report('aobscanmodule(x,C:/one/game.exe,90)');r.modules=modules
+  local api,calls=mock({'1000'});A.validate(api,r,context)
+  eq(#calls,0);eq(r.aobs[1].status,'unresolved')
+end)
+
+test('F-04 Lua RVA and globals retain unknown section provenance',function()
+  local r=report('[ENABLE]\n{$ifdef X}\n[DISABLE]\n{$endif}\n{$lua}\nlocal base = getAddress("game.exe")\nlocal source = base + 0x10\nSHARED_GLOBAL=OTHER_GLOBAL\n{$asm}')
+  eq(#r.resources,1);eq(r.resources[1].command,'lua_rva_hook')
+  eq(r.resources[1].section,'unknown')
+  for _,d in ipairs(r.dependencies) do eq(d.section,'unknown') end
 end)
 
 print(

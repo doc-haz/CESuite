@@ -68,3 +68,6 @@ closed schema must update it before validating 0.1.4 reports.
 
 Validation uses synthetic Lua/CE mocks, JSON exports and schema rejection tests.
 Application-specific evidence belongs in [reproducible validation cases](validation/dawnwalker.md).
+
+Current 0.1.9 boundary: aobscanregion is opaque and no longer emits a provider.
+The table above records the original 0.1.4 lexical contract; see p0-closure.md.

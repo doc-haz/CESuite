@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CESuite module-dump-1 persisted sidecar",
+  "description": "Persisted sidecars only. Declined overwrite returns an in-memory result without writing a sidecar. Bytes/size and backup identity relationships are checked by contract tests.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "module-dump-1"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "pid": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "module": {
+      "type": "string",
+      "minLength": 1
+    },
+    "module_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "base": {
+      "type": "string",
+      "pattern": "^0x[0-9A-F]+$"
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "bytes_written": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "layout": {
+      "const": "mapped_image"
+    },
+    "file": {
+      "type": "string",
+      "minLength": 1
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "unreadable_ranges": {
+      "type": "array",
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^0x[0-9A-F]+$"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "offset",
+          "address",
+          "size",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "atomic_snapshot": {
+      "const": false
+    },
+    "binary_fingerprint": {
+      "type": "null"
+    },
+    "error": {
+      "type": "string"
+    },
+    "cancelled": {
+      "const": true
+    },
+    "note": {
+      "type": "string"
+    },
+    "previous_files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "original": {
+            "type": "string",
+            "minLength": 1
+          },
+          "backup": {
+            "type": "string",
+            "pattern": "\\.previous(?:\\.[1-9][0-9]*)?$"
+          }
+        },
+        "required": [
+          "original",
+          "backup"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "pid",
+    "module",
+    "module_path",
+    "base",
+    "size",
+    "bytes_written",
+    "layout",
+    "file",
+    "started_at",
+    "completed_at",
+    "unreadable_ranges",
+    "atomic_snapshot",
+    "binary_fingerprint",
+    "note"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "partial"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "error"
+              ]
+            },
+            {
+              "required": [
+                "cancelled"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "unreadable_ranges": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "cancelled"
+        ]
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "partial"
+          }
+        }
+      }
+    }
+  ]
+}

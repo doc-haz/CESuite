@@ -144,7 +144,8 @@
             "enum": [
               "common",
               "enable",
-              "disable"
+              "disable",
+              "unknown"
             ]
           },
           "command": {
@@ -203,7 +204,8 @@
             "enum": [
               "common",
               "enable",
-              "disable"
+              "disable",
+              "unknown"
             ]
           },
           "command": {
@@ -242,7 +244,8 @@
             "enum": [
               "common",
               "enable",
-              "disable"
+              "disable",
+              "unknown"
             ]
           },
           "command": {

@@ -39,6 +39,9 @@ conservative Lua/RVA hook inventory.
    - **Export ChatGPT Report**: choose `CESuite_Runtime_Report.json`; collect a
      **fresh full snapshot and re-scan** before writing. Never exports an old scan
      against a newly selected process/table.
+   - **Dependency Summary**: grouped lexical occurrences; no resolved runtime edges.
+   - **Export Module Dump**: explicit mapped-image export with progress, cancellation
+     and backup-preserving overwrite confirmation. See [Module Dump](MODULE_DUMP.md).
    - **Remove CESuite Menu**: destroy only CESuite's owned menu/viewer objects.
    - **About CESuite**: show version, status and initial distribution mode.
 
@@ -71,7 +74,7 @@ Each AOB preserves its command, arguments, symbol, pattern, section and line:
 | --- | --- |
 | `aobscan` | Process-wide MemScan, start 0, unsigned all-addresses stop sentinel. |
 | `aobscanmodule` | Enumerated module base through base + image size, matching AA's stop argument. |
-| `aobscanregion` | Resolved original start/stop expressions passed unchanged to MemScan. |
+| `aobscanregion` | Opaque post-source lexical diagnostic; no scan or inferred provider. |
 
 All use no alignment and `*X*C*W` protection flags. No missing module or unresolved
 region falls back to a broader scan. Only literal byte/nibble wildcards are scanned;
@@ -185,7 +188,6 @@ The ZIP carries an absolute-path loader and the same modules; see
 [installation.md](installation.md) for artifact names and installation structure.
 
 ```powershell
-python -m pip install -r analyzer/requirements-dev.txt
 python tools/build_ce.py
 python tools/run_lua_tests.py --library 'C:/Program Files/Cheat Engine/lua53-64.dll'
 python -m unittest discover -s ce/tests -v
@@ -195,13 +197,13 @@ python -m unittest discover -s analyzer/tests -v
 
 The Lua runner loads a matching-architecture Lua 5.3 library into Python; it does
 not launch CE or use its process APIs. Linux can use a system `liblua5.3.so.0`.
-Alternatively run `lua5.3 ce/tests/runtime_spec.lua` from the repo root. Tests produce
-ignored synthetic JSON fixtures used by the schema tests. They verify actual Lua
+Alternatively run `lua5.3 ce/tests/runtime_spec.lua` from the repo root. The runtime Python contract setup generates its synthetic JSON fixtures in an
+isolated temporary directory; ignored files from a previous run are not required. They verify actual Lua
 serialization and the generated bundle with CE API **mocks**, not CE integration.
 
 For broader runtime certification, manually test both x86/x64 targets using an
 owned synthetic application: no attachment; attachment; module enumeration; 0/1/N
-matches in all scopes; region endpoints; unreadable pages; active records; duplicate
+matches in supported classic scopes; unreadable pages; active records; duplicate
 IDs; selected script; table switching; unavailable APIs; export errors; menu reinstall
 and removal. Compare AOB counts with CE's manual scans using identical flags and
 memory-type preferences. Confirm no writes, activation or debugger changes. Keep
@@ -220,3 +222,37 @@ regression fixture, a focused module change, schema migration when needed and an
 explicit changelog entry. Retain old reports where practical; never silently upgrade
 `unknown` into a verified assertion. Future tools can consume this evidence without
 turning the observation core into an implicit patching framework.
+
+Current local Core version is 0.1.9. Unknown IFDEF/IFNDEF branches and LuaCode
+bodies are opaque; their commands, labels and dependencies are omitted.
+Unmatched/incomplete conditionals produce diagnostics. HOOK/UNHOOK/HOOK5,
+aobscanfunction and aobscanregion are recognized lexically without translation.
+Ambiguous enumerated module names or paths remain unresolved; duplicate names
+produce null sizes and MODULE-SNAPSHOT-INCOMPLETE instead of a basename lookup.
+See [validation scope](p0-closure.md).
+
+
+The schema suites require `jsonschema>=4.18,<5`, formally declared in
+`analyzer/requirements-dev.txt`. Provisioning that dependency is a separate,
+explicitly authorized environment step; this mission installs nothing. Run the
+commands above from a clean clone with that dependency already present. Set
+`CESUITE_LUA_LIBRARY` to the absolute matching Lua 5.3 library path for the runtime
+Python setup (Windows CE path is the default). Without jsonschema, record schema
+skips/import errors and leave the full-suite gate open. See [p0-closure.md](p0-closure.md).
+
+
+## Indeterminate section provenance (0.1.9)
+
+When an [ENABLE]/[DISABLE] header appears inside a conditional/opaque region
+whose branch CESuite deliberately does not evaluate, CESuite emits
+`SECTION-INDETERMINATE` and uses `section: "unknown"`. It does not invent which
+section is effective. Section provenance becomes known again only at an explicit,
+unmasked header. Lua/RVA candidates, resources, AOBs and dependencies retain
+`unknown` where applicable. This documents the existing lexical behavior; it
+adds no branch evaluation or execution semantics.
+
+The current validation environment is Python 3.14.7 64-bit with jsonschema 4.26.0;
+the previously missing dependency was provisioned under DG authorization. The
+technical P0-05/P0-06/P0-07 gates are closed by DIESEL reaudit. Current automated
+results and separately reported live evidence are in [p0-closure.md](p0-closure.md)
+and [live-0.1.9.md](validation/live-0.1.9.md). No release is published by this mission.

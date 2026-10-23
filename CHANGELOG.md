@@ -1,6 +1,56 @@
 # Changelog
 
-## 0.1.6 - Unreleased (P0-04)
+## 0.1.9 - Unreleased (current local candidate)
+
+### Overwrite and backups
+
+- Add explicit Module Dump overwrite confirmation covering binary, partial and
+  JSON outputs. Declining preserves existing files; confirming retains prior
+  outputs as `.previous` / `.previous.N`, recorded in `previous_files`.
+- Failed/cancelled replacement exports preserve those backups.
+
+### P0-05 / P0-06 / P0-07 technical closure
+
+- Fail closed on incomplete/embedded LuaCode; process all same-line conditionals.
+  Keep unknown branches and HOOK/UNHOOK/HOOK5/aobscanfunction/aobscanregion opaque.
+- Emit SECTION-INDETERMINATE for conditional/opaque section headers and preserve
+  `section: "unknown"` until an explicit unmasked header establishes provenance.
+- Share name/path module matching; reject invalid/empty names before MemScan and
+  omit ambiguous module sizes with MODULE-SNAPSHOT-INCOMPLETE. No first-match.
+- Add module-dump-1 JSON Schema, real serialized-sidecar contract coverage,
+  deterministic isolated runtime fixtures and 40-case Lua/Python evidence parity.
+- Update complete 0.1.9 installation/upgrade instructions with mandatory CE restart.
+- DIESEL independently closed P0-05/P0-06/P0-07 technical criteria: **185 checks,
+  0 skips, 0 failures**, using Python 3.14.7 64-bit and jsonschema 4.26.0.
+- Dawnwalker metrics remain historical pending the exact private input; no new
+  historical replay or clean-clone requirement is asserted.
+
+### Current live observations (DG/AIR Boss)
+
+- Clean autorun installation/cold start and portable loading retain one singleton
+  and one menu; About remains 0.1.9 | ready | autorun; Analyze works.
+- Small Silksong module export completed (692224 bytes); large FFRS export showed
+  responsive progress. Cancel/close safely retained partial output and readable JSON.
+- Save-dialog cancel/close, busy guard/recovery, overwrite No/close and Yes,
+  `.previous`/`.previous.1` collision handling, `previous_files`, and paths with
+  spaces were exercised. See docs/validation/live-0.1.9.md for exact evidence/limits.
+- These observations do not establish every internal API path or general performance.
+  Real homonymous modules and the specific same-line section/header R-1 check
+  remain conditional/pending. No release has been published by this mission.
+
+## 0.1.8 - Local development increment (included in 0.1.9 candidate)
+
+- Fix the unresponsive Module Dump UI with progress, Cancel and event handling
+  between blocks; remove redundant per-byte Lua validation overhead. Preserve
+  partial-file and busy-state safeguards.
+
+## 0.1.7 - Local development increment (included in 0.1.9 candidate)
+
+- Introduce explicit Export Module Dump with mapped-image output, status sidecar,
+  bounded reads, partial-file handling and PID/module checks. Passive report
+  capture is unchanged. See docs/MODULE_DUMP.md.
+
+## 0.1.6 - Local development increment (P0-04; included in 0.1.9 candidate)
 
 - Add a pinned source/runtime evidence profile, without asserting equivalence
   or changing dependency/resource semantics. Preserve the CE API version string;
@@ -11,7 +61,7 @@
   without the optional profile. Old validators may reject new reports.
 - See docs/semantics-profile.md for evidence provenance and deferred scope.
 
-## 0.1.5 - Unreleased
+## 0.1.5 - Local development increment (included in 0.1.9 candidate)
 
 - Preserve raw dependency occurrences and add deterministic lexical groups by
   exact name, kind, source and relation; deduplicate displayed locations only.

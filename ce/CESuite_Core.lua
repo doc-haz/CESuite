@@ -8,7 +8,8 @@ local Life=require('lifecycle')
 local UI=require('ui')
 local Dependencies=require('dependencies')
 local Semantics=require('semantics')
-local Core={identity='CESuiteCore',version='0.1.6',schema_version='0.1',status='stopped',state=Life.new()}
+local ModuleDump=require('moduledump')
+local Core={identity='CESuiteCore',version='0.1.9',schema_version='0.1',status='stopped',state=Life.new()}
 function Core.analyze(mode)
   return Core.state.run(function()
     local r={schema_version=Core.schema_version,core_version=Core.version,
@@ -37,6 +38,11 @@ function Core.analyze(mode)
   end)
 end
 function Core.export(path) return Export.write(Core.analyze('export'),path) end
+function Core.listDumpModules()
+  assert(not Core.state.busy,'CESuite is busy')
+  return ModuleDump.list(api)
+end
+function Core.dumpModule(name,path,options) return Core.state.run(function() return ModuleDump.write(api,name,path,options) end) end
 function Core.shutdown() Core.state.shutdown();Core.viewer=nil;Core.memo=nil;Core.status='stopped' end
 function Core.showReport(report) return UI.showReport(Core,api,report) end
 function Core.install()

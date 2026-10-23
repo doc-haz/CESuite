@@ -10,5 +10,7 @@
     "resources": 16,
     "groups": 42,
     "locations": 87
-  }
+  },
+  "evidence_status": "historical_pending_revalidation",
+  "input_availability": "private_not_in_repository"
 }

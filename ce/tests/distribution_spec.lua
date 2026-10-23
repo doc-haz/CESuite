@@ -34,7 +34,7 @@ test('autorun then CT then autorun preserves instance, report and one menu',func
   local core=assert(dofile(autorun));eq(core.status,'ready');eq(core.distribution,'autorun')
   core.last_report={sentinel=true}
   eq(dofile(portable),core);eq(dofile(autorun),core);eq(core.last_report.sentinel,true)
-  eq(menus.Count,1);eq(created,9)
+  eq(menus.Count,1);eq(created,10)
   eq(core.install(),core);eq(menus.Count,1)
 end)
 test('CT then autorun preserves portable instance',function()
@@ -56,6 +56,49 @@ test('summary menu refreshes a table analysis in both distributions',function()
     menus[0].children[8].OnClick()
     eq(calls,1);eq(shown.dependency_summary[1].name,'GAME_STATE')
     eq(shown.dependency_summary[1].status,'unverified');eq(#messages,0)
+  end
+end)
+
+test('module dump menu is explicit, cancellation safe and destroys dialog',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    local core=assert(dofile(path));local calls,destroyed=0,0
+    core.listDumpModules=function() return {{Name='game.exe'}} end
+    local progressDestroyed,pumps=0,0
+    createForm=function() return {show=function() end,destroy=function() progressDestroyed=progressDestroyed+1 end} end
+    createLabel=function() return {} end
+    createProgressBar=function() return {} end
+    createButton=function() return {} end
+    processMessages=function() pumps=pumps+1 end
+    core.dumpModule=function(name,file,options)
+      eq(name,'game.exe');eq(file,'chosen.bin');calls=calls+1
+      eq(options.progress(5,10),true)
+      messageDialog=function() return 7 end
+      eq(options.confirmOverwrite({'chosen.bin','chosen.bin.json'}),false)
+      messageDialog=function() return 6 end
+      eq(options.confirmOverwrite({'chosen.bin'}),true)
+      return {status='complete',bytes_written=10,size=10,file=file}
+    end
+    eq(menus[0].children[9].Caption,'Export Module Dump')
+    inputQuery=function() return nil end
+    menus[0].children[9].OnClick();eq(calls,0)
+    inputQuery=function() return 'GAME.EXE' end
+    local accepted=false
+    createSaveDialog=function()
+      local dialog={}
+      dialog.execute=function() dialog.FileName='chosen.bin';return accepted end
+      dialog.destroy=function() destroyed=destroyed+1 end
+      return dialog
+    end
+    menus[0].children[9].OnClick();eq(calls,0);eq(destroyed,1)
+    accepted=true
+    menus[0].children[9].OnClick();eq(calls,1);eq(destroyed,2)
+    eq(progressDestroyed,1);eq(pumps,1)
+    assert(messages[#messages]:find('complete',1,true))
+    core.dumpModule=function() error('synthetic dump failure') end
+    menus[0].children[9].OnClick();eq(destroyed,3)
+    eq(progressDestroyed,2)
+    assert(messages[#messages]:find('synthetic dump failure',1,true))
   end
 end)
 test('remove and reload restores one menu and exposes status',function()

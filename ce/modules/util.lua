@@ -29,4 +29,24 @@ function M.unquote(s)
   if (a=='"' or a=="'") and a==b then return s:sub(2,-2) end
   return s
 end
+function M.moduleNorm(value)
+  if type(value)~='string' then return nil end
+  value=M.trim(M.unquote(M.trim(value))):gsub('\\','/'):lower()
+  return value~='' and value or nil
+end
+function M.moduleMatch(query,modules)
+  query=M.moduleNorm(query)
+  if not query then return nil,'invalid empty module query' end
+  local found,count=nil,0
+  local basename=not query:find('/',1,true)
+  for _,m in ipairs(modules) do
+    local name,path=M.moduleNorm(m.name),M.moduleNorm(m.path)
+    if name==query or path==query or (basename and
+      ((name and name:match('[^/]+$')==query) or (path and path:match('[^/]+$')==query))) then
+      found=m;count=count+1
+    end
+  end
+  if count>1 then return nil,'ambiguous module: '..query end
+  return found,count==0 and 'unresolved module: '..query or nil
+end
 return M

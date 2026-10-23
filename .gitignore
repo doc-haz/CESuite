@@ -21,3 +21,7 @@ build/
 releases/CESuite_Core_v*.CT
 *.7z
 ce/tests/generated-*.json
+
+# Local audit scratch and preserved pre-audit artifacts (never publish).
+/work/
+/local-backups/

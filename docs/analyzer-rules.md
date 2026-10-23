@@ -4,7 +4,7 @@ These engineering rules were supplied from legacy review. They describe review o
 
 | Topic | Rule | 0.1 coverage |
 | --- | --- | --- |
-| AOB scope | Preserve process, module or explicit region scope and all arguments; never silently broaden scans during porting. | Scope/arguments inventoried. |
+| AOB scope | Preserve process, module or explicit region scope and all arguments; never silently broaden scans during porting. | Classic process/module scope inventoried. aobscanregion is now opaque; no equivalent scan is inferred. |
 | Anchor vs hook | A signature anchor may differ from the actual hook address by an offset or calculation. Track both separately. | Generic HOOK-REVIEW; no address resolution. |
 | Uniqueness | Require exactly one match in the intended scope on the current executable build before patching. | AOB-UNIQUENESS marks every scan unverified. |
 | Overwrite and restore | Overwrite whole instructions; restore exactly every overwritten byte, including padding and the full jump span. | Manual disassembly/byte comparison required. |
@@ -25,3 +25,16 @@ These engineering rules were supplied from legacy review. They describe review o
 | Empty DISABLE | An empty `[DISABLE]` may be intentional for a persistent library. Check the persistence contract rather than treating it as an unconditional bug. | EMPTY-DISABLE advisory, never an error. |
 
 Warnings carry script IDs and line numbers when tied to recognized commands. Whole-script hints have a null line. Embedded Lua reports have their own script IDs; origins point back to the containing AA script. Lua and dependency heuristics can produce false positives from comments and strings. Do not use this catalog or an empty warning list as authorization to run a table.
+
+
+Core 0.1.9 audit boundaries: incomplete or embedded LuaCode makes the affected
+line/body opaque; same-line IFDEF/IFNDEF/ENDIF are all counted. An unmasked
+conditional ENABLE/DISABLE header emits SECTION-INDETERMINATE; later inventory
+uses `unknown` until an explicit header establishes a section. This never
+evaluates a condition. Opaque/incomplete directives are reported at source lines.
+
+MAGNA's proposed AOB-prefix KeyError was investigated. `COMMAND` is an anchored
+explicit regex allowlist, so every AOB command reaching the lookup is in its
+mapping; `aobscanregion` is intercepted as opaque by source_rows. Adversarial
+unknown prefixes cannot reach that lookup. A regression tests those inputs;
+no speculative lookup change is required.
