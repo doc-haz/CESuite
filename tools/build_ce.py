@@ -8,8 +8,12 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def version():
-    return re.search(r"version='(\d+\.\d+\.\d+(?:\.\d+)?)'", (ROOT / 'ce/CESuite_Core.lua').read_text(encoding='utf-8')).group(1)
+def version(source=None):
+    text = source if source is not None else (ROOT / 'ce/CESuite_Core.lua').read_text(encoding='utf-8')
+    m = re.search(r"(?:Core\s*=\s*\{[^}]*?\bversion\s*=\s*['\"]|Core\.version\s*=\s*['\"])([0-9A-Za-z._-]+)['\"]", text)
+    if not m:
+        raise ValueError('Could not extract Core.version from source')
+    return m.group(1)
 
 
 def bundle():

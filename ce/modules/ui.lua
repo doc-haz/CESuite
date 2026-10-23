@@ -187,6 +187,27 @@ function M.install(Core,api)
     dialog.destroy()
     if not ok then error(err) end
   end)
+
+  command('Static Lua AOB Analysis',function()
+    local r=Core.analyzeStaticLua()
+    Core.showReport(r)
+  end)
+
+  command('Export Static Lua Report',function()
+    local dialog=api.createSaveDialog(api.getMainForm())
+    local ok,err=pcall(function()
+      dialog.FileName='CESuite_Runtime_Report_enriched.json'
+      dialog.DefaultExt='json'
+      dialog.Filter='JSON report|*.json'
+      dialog.Options='[ofOverwritePrompt,ofPathMustExist]'
+      if dialog.execute() then
+        Core.exportEnriched(dialog.FileName)
+        api.showMessage('CESuite static Lua report saved: '..dialog.FileName)
+      end
+    end)
+    dialog.destroy()
+    if not ok then error(err) end
+  end)
 end
 
 return M

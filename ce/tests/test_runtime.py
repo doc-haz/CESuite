@@ -274,6 +274,71 @@ class RuntimeContractTests(unittest.TestCase):
             self.assertEqual((output / 'CESuite_Core.CT').read_bytes(),
                              (output / f'CESuite_Core_v{builder.version()}.CT').read_bytes())
 
+    def test_export_enriched_real_lifecycle_and_schema_validation(self):
+        library = os.environ.get('CESUITE_LUA_LIBRARY') or ctypes.util.find_library('lua5.3')
+        library = library or 'C:/Program Files/Cheat Engine/lua53-64.dll'
+        lib = ctypes.CDLL(str(library))
+        lib.luaL_newstate.restype = ctypes.c_void_p
+        lib.luaL_openlibs.argtypes = [ctypes.c_void_p]
+        lib.luaL_loadstring.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+        lib.lua_pcallk.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_ssize_t, ctypes.c_void_p]
+        lib.lua_tolstring.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_size_t)]
+        lib.lua_tolstring.restype = ctypes.c_char_p
+        lib.lua_close.argtypes = [ctypes.c_void_p]
+
+        state = lib.luaL_newstate()
+        self.assertIsNotNone(state)
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as tf:
+            enriched_path = tf.name.replace('\\', '/')
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as tf2:
+            normal_path = tf2.name.replace('\\', '/')
+        try:
+            lib.luaL_openlibs(state)
+            harness = f"""
+            package.path = 'ce/modules/?.lua;' .. package.path
+            getMainForm = function() return {{ Menu = {{ Items = {{ Count = 0, add = function() end }} }} }} end
+            createMenuItem = function() return {{ add = function() end, destroy = function() end, children = {{}} }} end
+            getAddressList = function() return {{ Count = 0, getMemoryRecord = function() return nil end }} end
+            local bundle_fn = assert(loadfile('releases/CESuite_Core.lua'))
+            local Core = bundle_fn()
+            Core.install()
+            Core.exportEnriched('{enriched_path}')
+            assert(not Core.state.busy, 'busy must be false after exportEnriched')
+            Core.export('{normal_path}')
+            assert(not Core.state.busy, 'busy must be false after export')
+            """
+            status = lib.luaL_loadstring(state, harness.encode('utf-8'))
+            if not status:
+                status = lib.lua_pcallk(state, 0, 0, 0, 0, None)
+            if status:
+                err = lib.lua_tolstring(state, -1, None).decode('utf-8', errors='replace')
+                self.fail(f"Harness failed: {err}")
+
+            enriched_content = Path(enriched_path).read_text(encoding='utf-8')
+            report = json.loads(enriched_content)
+            self.assertEqual(report['core_version'], '0.1.9')
+            self.assertIn('static_lua_analysis', report)
+            self.assertEqual(report['static_lua_analysis'].get('suite_version'), '0.2.0-beta1')
+            self.assertIsInstance(report['static_lua_analysis']['source']['name'], str)
+            self.assertNotEqual(report['static_lua_analysis']['source']['name'], '')
+            self.validator.validate(report)
+
+            # Test suite_version schema strictness
+            bad_report = copy.deepcopy(report)
+            bad_report['static_lua_analysis']['suite_version'] = 12345
+            with self.assertRaises(ValidationError):
+                self.validator.validate(bad_report)
+
+            normal_content = Path(normal_path).read_text(encoding='utf-8')
+            norm_report = json.loads(normal_content)
+            self.assertEqual(norm_report['core_version'], '0.1.9')
+            self.assertNotIn('static_lua_analysis', norm_report)
+            self.validator.validate(norm_report)
+        finally:
+            lib.lua_close(state)
+            Path(enriched_path).unlink(missing_ok=True)
+            Path(normal_path).unlink(missing_ok=True)
+
 
 if __name__ == '__main__':
     unittest.main()

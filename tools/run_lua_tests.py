@@ -57,6 +57,7 @@ if __name__ == '__main__':
     library = parser.parse_args().library.resolve()
     run(library)
     run(library, 'ce/tests/module_dump_spec.lua')
+    run(library, 'ce/tests/luastatic_spec.lua')
     with tempfile.TemporaryDirectory(prefix='CESuite test ') as directory:
         output = Path(directory)
         build(output)

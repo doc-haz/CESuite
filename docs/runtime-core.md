@@ -40,6 +40,8 @@ conservative Lua/RVA hook inventory.
      **fresh full snapshot and re-scan** before writing. Never exports an old scan
      against a newly selected process/table.
    - **Dependency Summary**: grouped lexical occurrences; no resolved runtime edges.
+   - **Static Lua AOB Analysis**: passive lexical scan of table Lua scripts for supported AOB patterns, shown in the read-only JSON viewer.
+   - **Export Static Lua Report**: collects a full analysis report enriched with passive static Lua AOB observations (`static_lua_analysis`) and prompts to save JSON.
    - **Export Module Dump**: explicit mapped-image export with progress, cancellation
      and backup-preserving overwrite confirmation. See [Module Dump](MODULE_DUMP.md).
    - **Remove CESuite Menu**: destroy only CESuite's owned menu/viewer objects.
@@ -47,7 +49,8 @@ conservative Lua/RVA hook inventory.
 
 Analysis commands show a read-only JSON viewer. The most recent object is also
 available as `CESuiteCore.last_report`. Developer calls:
-`CESuiteCore.analyze('validate')`, `CESuiteCore.export(path)`,
+`CESuiteCore.analyze('validate')`, `CESuiteCore.analyzeStaticLua()`,
+`CESuiteCore.export(path)`, `CESuiteCore.exportEnriched(path)`,
 `CESuiteCore.shutdown()`. Reports can contain scripts and local paths; review their
 contents before sharing. No automatic upload is provided.
 

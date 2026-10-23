@@ -9,35 +9,94 @@ local UI=require('ui')
 local Dependencies=require('dependencies')
 local Semantics=require('semantics')
 local ModuleDump=require('moduledump')
-local Core={identity='CESuiteCore',version='0.1.9.1',schema_version='0.1',status='stopped',state=Life.new()}
+local LuaStatic=require('luastatic')
+local Core={identity='CESuiteCore',version='0.2.0-beta1',schema_version='0.1',status='stopped',state=Life.new()}
+local function collectReport(mode)
+  local r={schema_version=Core.schema_version,core_version='0.1.9',
+    generated_at=os.date('!%Y-%m-%dT%H:%M:%SZ'),mode=mode,observation_only=true,
+    records=U.array(),scripts=U.array(),aobs=U.array(),resources=U.array(),dependencies=U.array(),diagnostics=U.array(),
+    limitations=U.array({'Dependencies are partial lexical occurrences, not resolved cross-script links or runtime availability; provides/requires remain unverified.',
+      'Not an atomic process snapshot; target memory and modules may change during collection.',
+      'Uniqueness applies only to CE-readable memory in this scan, not other builds or hook compatibility.',
+      'No source scripts, symbol callbacks, includes or macros are executed. Computed expressions can remain unresolved.',
+      'Up to 256 addresses per AOB; byte and instruction context omitted because CE disassembly may invoke unaudited callbacks/overrides.',
+      'Instruction boundaries, ownership, restore-before-free, overwrite length and relocation safety remain unverified.',
+      'CE scan memory-type preferences and unreadable pages can limit coverage; no complete address-space accessibility claim.',
+      'Table Lua is unavailable: no audited passive source; Lua Engine editor contents, external Lua files, closures and arbitrary globals are not captured.'})}
+  Env.capture(api,r)
+  r.semantics_profile=Semantics.profile(r.ce_version)
+  if mode~='process' then CT.capture(api,r,mode=='selected') end
+  r.dependency_summary=Dependencies.summarize(r.dependencies)
+  if mode=='validate' or mode=='export' then AOB.validate(api,r) end
+  r.completed_at=os.date('!%Y-%m-%dT%H:%M:%SZ')
+  if U.call(api,'getOpenedProcessID')~=r.target.pid then
+    U.warn(r,'PROCESS-CHANGED','Process changed during collection; runtime results invalidated.')
+    for _,a in ipairs(r.aobs) do a.status='invalidated';a.uniqueness='unverified';a.match_count=U.null;a.matches=U.array();a.hook_candidates=U.array();a.matches_truncated=false end
+  end
+  Core.last_report=r
+  return r
+end
 function Core.analyze(mode)
   return Core.state.run(function()
-    local r={schema_version=Core.schema_version,core_version='0.1.9',
-      generated_at=os.date('!%Y-%m-%dT%H:%M:%SZ'),mode=mode,observation_only=true,
-      records=U.array(),scripts=U.array(),aobs=U.array(),resources=U.array(),dependencies=U.array(),diagnostics=U.array(),
-      limitations=U.array({'Dependencies are partial lexical occurrences, not resolved cross-script links or runtime availability; provides/requires remain unverified.',
-        'Not an atomic process snapshot; target memory and modules may change during collection.',
-        'Uniqueness applies only to CE-readable memory in this scan, not other builds or hook compatibility.',
-        'No source scripts, symbol callbacks, includes or macros are executed. Computed expressions can remain unresolved.',
-        'Up to 256 addresses per AOB; byte and instruction context omitted because CE disassembly may invoke unaudited callbacks/overrides.',
-        'Instruction boundaries, ownership, restore-before-free, overwrite length and relocation safety remain unverified.',
-        'CE scan memory-type preferences and unreadable pages can limit coverage; no complete address-space accessibility claim.',
-        'Table Lua is unavailable: no audited passive source; Lua Engine editor contents, external Lua files, closures and arbitrary globals are not captured.'})}
-    Env.capture(api,r)
-    r.semantics_profile=Semantics.profile(r.ce_version)
-    if mode~='process' then CT.capture(api,r,mode=='selected') end
-    r.dependency_summary=Dependencies.summarize(r.dependencies)
-    if mode=='validate' or mode=='export' then AOB.validate(api,r) end
-    r.completed_at=os.date('!%Y-%m-%dT%H:%M:%SZ')
-    if U.call(api,'getOpenedProcessID')~=r.target.pid then
-      U.warn(r,'PROCESS-CHANGED','Process changed during collection; runtime results invalidated.')
-      for _,a in ipairs(r.aobs) do a.status='invalidated';a.uniqueness='unverified';a.match_count=U.null;a.matches=U.array();a.hook_candidates=U.array();a.matches_truncated=false end
-    end
-    Core.last_report=r
-    return r
+    return collectReport(mode)
   end)
 end
-function Core.export(path) return Export.write(Core.analyze('export'),path) end
+function Core.analyzeStaticLua()
+  return Core.state.run(function()
+    local r={schema_version=Core.schema_version,core_version='0.1.9',
+      generated_at=os.date('!%Y-%m-%dT%H:%M:%SZ'),mode='table',observation_only=true,
+      records=U.array(),scripts=U.array(),aobs=U.array(),resources=U.array(),dependencies=U.array(),diagnostics=U.array(),
+      limitations=U.array({
+        'Static Lua source candidates only; original runtime aobs and match counts are unchanged.',
+        'Library signature declarations remain unlinked when object initialization is unknown.',
+        'No target, Lua, cheats, wrappers or scan APIs were executed.',
+        'Static source observations are separate from memory-verified AOB matches.'
+      })}
+    Env.capture(api,r)
+    r.semantics_profile=Semantics.profile(r.ce_version)
+    CT.capture(api,r,false)
+    local observations,diagnostics,limitations=LuaStatic.analyze(r.scripts)
+    local patterns={}
+    for _,obs in ipairs(observations) do
+      if obs.pattern and obs.pattern~=U.null then
+        patterns[obs.pattern]=true
+      end
+    end
+    local uniqueCount=0
+    for _ in pairs(patterns) do uniqueCount=uniqueCount+1 end
+    r.completed_at=os.date('!%Y-%m-%dT%H:%M:%SZ')
+    local staticReport={
+      title='CESuite Static Lua AOB Analysis',
+      core_version='0.1.9',
+      suite_version=Core.version,
+      ce_version=r.ce_version,
+      generated_at=r.generated_at,
+      completed_at=r.completed_at,
+      observation_only=true,
+      target=r.target,
+      candidate_count=#observations,
+      unique_pattern_count=uniqueCount,
+      observations=observations,
+      diagnostics=diagnostics,
+      limitations=limitations
+    }
+    Core.last_static_report=staticReport
+    return staticReport
+  end)
+end
+function Core.export(path)
+  return Core.state.run(function()
+    local r=collectReport('export')
+    return Export.write(r,path)
+  end)
+end
+function Core.exportEnriched(path)
+  return Core.state.run(function()
+    local r=collectReport('export')
+    LuaStatic.enrichReport(r)
+    return Export.write(r,path)
+  end)
+end
 function Core.listDumpModules()
   assert(not Core.state.busy,'CESuite is busy')
   return ModuleDump.list(api)

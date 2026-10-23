@@ -34,12 +34,72 @@ test('autorun then CT then autorun preserves instance, report and one menu',func
   local core=assert(dofile(autorun));eq(core.status,'ready');eq(core.distribution,'autorun')
   core.last_report={sentinel=true}
   eq(dofile(portable),core);eq(dofile(autorun),core);eq(core.last_report.sentinel,true)
-  eq(menus.Count,1);eq(created,10)
+  eq(menus.Count,1);eq(created,12)
   eq(core.install(),core);eq(menus.Count,1)
 end)
 test('CT then autorun preserves portable instance',function()
   local core=assert(dofile(portable));eq(dofile(autorun),core);eq(menus.Count,1)
   eq(core.distribution,'portable')
+end)
+
+test('static lua menu items trigger analysis and export without executing target code',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    local core=assert(dofile(path))
+    local staticCalls,shown=0,nil
+    core.analyzeStaticLua=function()
+      staticCalls=staticCalls+1
+      return {title='CESuite Static Lua AOB Analysis',candidate_count=22}
+    end
+    core.showReport=function(r) shown=r end
+    eq(menus[0].children[10].Caption,'Static Lua AOB Analysis')
+    menus[0].children[10].OnClick()
+    eq(staticCalls,1);eq(shown.candidate_count,22)
+
+    eq(menus[0].children[11].Caption,'Export Static Lua Report')
+    local exported,destroyed=false,0
+    createSaveDialog=function()
+      return {
+        execute=function() return true end,
+        destroy=function() destroyed=destroyed+1 end,
+        FileName='dummy.json'
+      }
+    end
+    core.exportEnriched=function(p) exported=p end
+    menus[0].children[11].OnClick()
+    eq(exported,'CESuite_Runtime_Report_enriched.json');eq(destroyed,1)
+  end
+end)
+
+test('real static lua analyze and exportEnriched run without busy guard conflict',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    getAddressList=function() return {Count=0,getMemoryRecord=function() return nil end} end
+    local core=assert(dofile(path))
+    local staticReport=core.analyzeStaticLua()
+    eq(staticReport.title,'CESuite Static Lua AOB Analysis')
+    eq(staticReport.core_version,'0.1.9')
+    eq(core.state.busy,false)
+
+    local outPath=root..'/enriched_test_'..core.distribution..'.json'
+    local ok,err=pcall(function() return core.exportEnriched(outPath) end)
+    assert(ok,'exportEnriched failed: '..tostring(err))
+    eq(core.state.busy,false)
+
+    local f=assert(io.open(outPath,'rb'))
+    local content=f:read('*a')
+    f:close()
+    os.remove(outPath)
+    assert(#content>0)
+    assert(content:find('"static_lua_analysis"',1,true))
+    assert(content:find('"core_version":"0.1.9"',1,true))
+
+    local normalPath=root..'/normal_test_'..core.distribution..'.json'
+    local okNorm,errNorm=pcall(function() return core.export(normalPath) end)
+    assert(okNorm,'export failed after exportEnriched: '..tostring(errNorm))
+    eq(core.state.busy,false)
+    os.remove(normalPath)
+  end
 end)
 
 test('summary menu refreshes a table analysis in both distributions',function()

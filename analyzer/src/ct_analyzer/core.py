@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import sys
 import xml.etree.ElementTree as ET
+from .lua_static import analyze_lua, embedded_lua
 
 MAX_BYTES = 16 * 1024 * 1024
 COMMAND = re.compile(r'^\s*(aobscanmodule|aobscanregion|aobscan|globalalloc|alloc|dealloc|registersymbol|unregistersymbol|define|label)\s*\((.*)\)\s*$', re.I)
@@ -166,9 +167,9 @@ def analyze(data, source_name='<memory>'):
     report = dict(schema_version='0.1', analyzer_version='0.1.0',
                   source=dict(name=source_name, sha256=hashlib.sha256(data).hexdigest()),
                   records=[], scripts=[], aobs=[], symbols=[], allocations=[],
-                  dependencies=[], warnings=[],
+                  dependencies=[], warnings=[], lua_aobs=[],
                   limitations=['Static lexical analysis only; no execution, disassembly, process access or AOB uniqueness testing.',
-                               'Computed Lua, includes, macros and complex AA syntax may not be resolved.',
+                               'Lua source candidates do not prove control flow, scope or mutation; includes, macros and complex AA syntax may not be resolved.',
                                'Dependency candidates are textual hints, not execution-order proof.'])
 
     def warn(rule, message, script=None, line=None):
@@ -228,6 +229,10 @@ def analyze(data, source_name='<memory>'):
             if re.search(r'(?im)^\s*jmp\s+', '\n'.join(x[1] for x in aa_lines(text))):
                 warn('HOOK-REVIEW', 'Review anchor versus hook, short5/far14 reach, whole-instruction overwrite, relocation, exact restore and restore-before-free.', sid)
             chunk = []
+            try:
+                report['lua_aobs'].extend(analyze_lua('\n'.join(content if kind == 'lua' else '' for _, kind, content, _ in rows), sid))
+            except ValueError as exc:
+                warn('LUA-STATIC-LIMIT', str(exc), sid)
             for _, kind, content, _ in rows + [(0, 'asm', '', None)]:
                 if kind == 'lua':
                     chunk.append(content)
@@ -235,6 +240,11 @@ def analyze(data, source_name='<memory>'):
                     script('Lua', '\n'.join(chunk), record, sid + ':embedded-lua')
                     chunk = []
         else:
+            try:
+                if ':embedded-lua' not in origin:
+                    report['lua_aobs'].extend(analyze_lua(text, sid))
+            except ValueError as exc:
+                warn('LUA-STATIC-LIMIT', str(exc), sid)
             for token, rule, message in [
                 ('createTimer', 'TIMER-LIFECYCLE', 'Review timer ownership, disable/destroy and callbacks after teardown.'),
                 ('debug_setBreakpoint', 'BREAKPOINT-OWNERSHIP', 'Track breakpoint ownership; remove only breakpoints created here.'),
@@ -267,6 +277,11 @@ def analyze(data, source_name='<memory>'):
     walk(root.findall('./CheatEntries/CheatEntry'))
     for node in root.findall('./LuaScript'):
         script('Lua', node.text or '', None, 'CheatTable/LuaScript')
+    for name, text, error in embedded_lua(root):
+        if error:
+            warn('EMBEDDED-LUA-UNKNOWN', name + ': ' + error)
+        else:
+            script('Lua', text, None, 'CheatTable/Files/' + name)
     providers = {}
     for item in report['symbols'] + report['aobs'] + report['allocations']:
         if item['command'] in ('registersymbol', 'define', 'label', 'alloc', 'globalalloc', 'aobscan', 'aobscanmodule', 'aobscanregion'):

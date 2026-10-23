@@ -417,6 +417,152 @@
     },
     "semantics_profile": {
       "$ref": "#/$defs/semanticsProfile"
+    },
+    "static_lua_analysis": {
+      "type": "object",
+      "required": [
+        "version",
+        "source",
+        "runtime_report_sha256",
+        "association",
+        "observations",
+        "diagnostics",
+        "limitations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "0.1"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "name",
+            "sha256"
+          ],
+          "additionalProperties": false
+        },
+        "runtime_report_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "association": {
+          "type": "string"
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "script_id": {
+                "type": "string"
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sink": {
+                "type": "string"
+              },
+              "symbol": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "pattern": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "raw_pattern": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "source-candidate",
+                  "unknown"
+                ]
+              },
+              "confidence": {
+                "const": "lexical"
+              },
+              "provenance": {
+                "const": "static-lua"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "scope": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "unknowns": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "match_count": {
+                "type": "null"
+              },
+              "uniqueness": {
+                "const": "unverified"
+              }
+            },
+            "required": [
+              "script_id",
+              "line",
+              "sink",
+              "symbol",
+              "pattern",
+              "raw_pattern",
+              "status",
+              "confidence",
+              "provenance",
+              "evidence",
+              "scope",
+              "unknowns",
+              "match_count",
+              "uniqueness"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "suite_version": {
+          "type": "string"
+        }
+      }
     }
   },
   "allOf": [

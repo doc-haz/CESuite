@@ -1,5 +1,9 @@
 # CESuite
 
+Offline and in-CE Lua AOB static analysis supports literal assignments,
+concatenation, tables and embedded Lua libraries without executing inspected
+code. See [usage and limitations](docs/static-lua-aobs.md).
+
 A local analysis, diagnostics and evidence-export toolkit for Cheat Engine tables and attached processes.
 
 [Latest Release](https://github.com/doc-haz/CESuite/releases/latest) · [Installation](docs/installation.md) · [Runtime Reference](docs/runtime-core.md)
@@ -42,6 +46,8 @@ Module dumping is a separate, explicit action.
 | **Validate AOBs** | Fresh process/table capture and scans for supported literal `aobscan` / `aobscanmodule` patterns, with counts and available match addresses. |
 | **Dependency Summary** | Grouped lexical dependency occurrences, preserving raw evidence; not a resolved runtime dependency graph. |
 | **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, AI-assisted analysis or external tooling. You choose where to save it; nothing is uploaded. |
+| **Static Lua AOB Analysis** | Passive lexical analysis of table Lua scripts for supported AOB patterns, displayed in the read-only viewer without live scans. |
+| **Export Static Lua Report** | Exports a full runtime report enriched with the static_lua_analysis section (JSON). |
 | **Export Module Dump** | A loaded PE module in mapped-image layout, plus JSON metadata, progress, cancellation and backup-preserving overwrite confirmation. |
 
 ## Installation
@@ -84,7 +90,13 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 | `<name>.module.bin.json` | Dump sidecar containing status, process/module identity, base, expected size, bytes written, timestamps and relevant errors, cancellation or backup metadata. |
 | `<name>.module.bin.partial` | Incomplete dump retained after cancellation or failure. Never treat it as a complete image. Metadata is written when possible. |
 | `*.previous`, `*.previous.1`, … | Previous outputs preserved after confirmed overwrite. The new sidecar records the backup mappings. |
+| `CESuite_Runtime_Report_enriched.json` | Runtime report enriched with `static_lua_analysis`, documenting static source candidates without promoting them to runtime-verified AOBs. |
 | `report.json` + `report.md` | Reports produced by the separate offline CT Analyzer. |
+
+### Report Versioning
+
+- `core_version`: `0.1.9` indicates the baseline runtime report format and schema compatibility level for downstream consumers.
+- `suite_version`: `0.2.0-beta1` records the specific CESuite toolkit version that generated the report or static analysis.
 
 ## Safety and limitations
 

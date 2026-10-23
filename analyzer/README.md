@@ -9,7 +9,12 @@ python -m unittest discover -s analyzer/tests -v
 
 The output directory is created when necessary. Existing `report.json` and `report.md` are replaced. Exit code 0 means the report was generated, including any review warnings; 2 means invalid input or an I/O failure. Outputs are not a transactional pair if an I/O failure interrupts writing.
 
-Input limit: 16 MiB. DTD/entity declarations are rejected, including UTF-16 declarations. The root must be an unnamespaced `CheatTable`; malformed XML and record nesting beyond 128 levels fail clearly. Compressed/encrypted tables and embedded binary payloads are not analyzed. Unknown XML fields are ignored.
+Input limit: 16 MiB. DTD/entity declarations are rejected, including UTF-16 declarations. The root must be an unnamespaced `CheatTable`; malformed XML and record nesting beyond 128 levels fail clearly. Compressed/encrypted tables and embedded binary payloads are not analyzed. Embedded UTF-8 Lua libraries in CE's Ascii85/raw-DEFLATE format are decoded with resource limits. Unknown XML fields are ignored.
+
+Lua source signatures are exported separately as `lua_aobs`, with provenance,
+evidence and unknowns; match counts are always null. See
+[static Lua AOB inventory](../docs/static-lua-aobs.md) for supported expressions,
+wrappers, limits and offline runtime-report enrichment.
 
 AA commands are recognized at the start of a logical line, case-insensitively, with quoted comma arguments preserved. AA comments and embedded Lua are excluded from AA observations. Embedded Lua between `{$lua}` and `{$asm}` is also extracted separately. Source scripts remain available in full for manual review.
 

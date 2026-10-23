@@ -344,6 +344,95 @@
       "items": {
         "type": "string"
       }
+    },
+    "lua_aobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "script_id": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sink": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pattern": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raw_pattern": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "source-candidate",
+              "unknown"
+            ]
+          },
+          "confidence": {
+            "const": "lexical"
+          },
+          "provenance": {
+            "const": "static-lua"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "scope": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unknowns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "match_count": {
+            "type": "null"
+          },
+          "uniqueness": {
+            "const": "unverified"
+          }
+        },
+        "required": [
+          "script_id",
+          "line",
+          "sink",
+          "symbol",
+          "pattern",
+          "raw_pattern",
+          "status",
+          "confidence",
+          "provenance",
+          "evidence",
+          "scope",
+          "unknowns",
+          "match_count",
+          "uniqueness"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "required": [

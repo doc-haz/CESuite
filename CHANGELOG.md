@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0-beta1 - Beta
+
+- **Static Lua AOB Analysis**: Added passive lexical analysis of table Lua scripts for supported AOB patterns (literal assignments, variable concatenations, table indexing, multi-custom-scan wrappers, and unlinked library declarations).
+- **Two New In-CE Menu Actions**:
+  - `Static Lua AOB Analysis`: runs passive lexical Lua analysis on the loaded table and displays results in the read-only JSON viewer.
+  - `Export Static Lua Report`: exports a full runtime report enriched with the `static_lua_analysis` section.
+- **Enriched Export**: `Core.exportEnriched()` exports a full report with `static_lua_analysis` without executing user scripts or target code.
+- **Strict Evidence Separation**: Lexical static source observations are held under `static_lua_analysis` (or `lua_aobs`) with `provenance: "static-lua"` and `uniqueness: "unverified"`; lexical candidates are never promoted to memory-verified runtime observations.
+- **Runtime Compatibility**: Runtime report format, `core_version: "0.1.9"` compatibility level, and runtime schema validation are strictly preserved.
+- **Rollback Procedure (Beta → v0.1.9.1)**:
+  To roll back from 0.2.0-beta1 to v0.1.9.1:
+  1. Completely delete or move the `cesuite/` folder and `CESuite_Autorun.lua` from your CE `autorun` directory. Do not overwrite or blend files in-place to avoid leaving `luastatic.lua` orphaned.
+  2. Extract the complete clean `CESuite_Autorun_v0.1.9.1.zip` archive into the `autorun` directory.
+  3. Restart Cheat Engine completely.
+  4. Verify **CESuite → About CESuite** reports `0.1.9.1` and status `ready`.
+
 ## 0.1.9.1 - Hotfix
 
 - Renamed the user-facing `Export ChatGPT Report` action to `Export Analysis Report`.
