@@ -46,15 +46,15 @@ Module dumping is a separate, explicit action.
 
 ## Installation
 
-Download either asset from the [public v0.1.9 release](https://github.com/doc-haz/CESuite/releases/tag/v0.1.9):
+Download either asset from the [latest release](https://github.com/doc-haz/CESuite/releases/latest):
 
-- **Autorun ZIP — persistent installation:** close CE, back up and retire any previous CESuite loader/module folder, then extract the contents of `CESuite_Autorun_v0.1.9.zip` into your CE installation's `autorun` directory, for example:
+- **Autorun ZIP — persistent installation:** close CE, back up and retire any previous CESuite loader/module folder, then extract the contents of the versioned Autorun ZIP into your CE installation's `autorun` directory, for example:
 
   `C:\Program Files\Cheat Engine\autorun\`
 
   `CESuite_Autorun.lua` and the `cesuite` folder must sit directly inside it. Restart CE and do not mix CESuite versions.
 
-- **Portable CT — session use:** open `CESuite_Core_v0.1.9.CT` and allow **CESuite's own** table Lua to install the menu. It is self-contained; the ZIP is unnecessary. Load CESuite before your target CT, since opening a CT can replace the address list. The CESuite menu persists across table loads in that Lua session.
+- **Portable CT — session use:** open the versioned portable CT and allow **CESuite's own** table Lua to install the menu. It is self-contained; the ZIP is unnecessary. Load CESuite before your target CT, since opening a CT can replace the address list. The CESuite menu persists across table loads in that Lua session.
 
 Both modes share a duplicate-load guard. After an upgrade, restart CE to replace an already loaded runtime.
 
@@ -63,7 +63,7 @@ See [installation, upgrade and removal instructions](docs/installation.md) for d
 ## Quick start
 
 1. Start CE with CESuite installed, or load the portable CT first.
-2. Open **CESuite → About CESuite** and confirm version `0.1.9` with `ready` status.
+2. Open **CESuite → About CESuite** and confirm the displayed version matches the release you installed and the status is `ready`.
 3. Load the CT you want to inspect.
 4. Attach CE to the intended process yourself.
 5. Leave target scripts disabled while reviewing them.
@@ -129,13 +129,9 @@ See [CLI usage and input limits](analyzer/README.md).
 
 ## Validation and release status
 
-**CESuite v0.1.9 is a published public release.**
+**Use the latest published release of CESuite.**
 
-Release commit:
-
-`a4e0f40d158d9a7031d5a024ee85475380cfe9ca`
-
-Download assets and published SHA-256 values from the [v0.1.9 release page](https://github.com/doc-haz/CESuite/releases/tag/v0.1.9).
+Download assets and published SHA-256 values from the [current release page](https://github.com/doc-haz/CESuite/releases/latest).
 
 P0-05, P0-06 and P0-07 are closed.
 
@@ -147,7 +143,7 @@ Recorded automated validation totals:
 
 These cover Lua runtime tests, module dump behavior, distribution checks, parser parity and Python/schema contracts.
 
-Recorded v0.1.9 live validation includes:
+Recorded live validation includes:
 
 - clean autorun installation and cold restart;
 - portable/singleton behavior;
