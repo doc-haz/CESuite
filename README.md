@@ -163,10 +163,10 @@ Still pending as nonblocking follow-up work:
 
 - real homonymous-module `MODULE-SNAPSHOT-INCOMPLETE` validation;
 - live R-1 check;
-- private Dawnwalker replay;
+- private historical replay validation;
 - D-5 / D-6 and O-1–O-4 cleanup items targeted for later development.
 
-See [P0 closure and automated evidence](docs/p0-closure.md) and [exact v0.1.9 live observations and limits](docs/validation/live-0.1.9.md).
+See [P0 closure and automated evidence](https://github.com/doc-haz/CESuite/blob/main/docs/p0-closure.md) and [exact v0.1.9 live observations and limits](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.1.9.md).
 
 ## Credits
 
