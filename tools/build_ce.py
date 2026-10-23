@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def version():
-    return re.search(r"version='(\d+\.\d+\.\d+)'", (ROOT / 'ce/CESuite_Core.lua').read_text(encoding='utf-8')).group(1)
+    return re.search(r"version='(\d+\.\d+\.\d+(?:\.\d+)?)'", (ROOT / 'ce/CESuite_Core.lua').read_text(encoding='utf-8')).group(1)
 
 
 def bundle():

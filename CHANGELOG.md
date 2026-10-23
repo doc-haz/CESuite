@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.9.1 - Hotfix
+
+- Renamed the user-facing `Export ChatGPT Report` action to `Export Analysis Report`.
+- Updated documentation to describe the report as vendor-neutral structured analysis evidence.
+- No report schema, JSON structure or runtime behavior changed.
+
 ## 0.1.9 - Unreleased (current local candidate)
 
 ### Overwrite and backups
@@ -111,7 +117,7 @@
 - Prevent the Access Violation observed when reopening CESuite reports after
   closing the viewer.
 - Live-tested on Cheat Engine 7.7.1 with Analyze Loaded Table, Validate AOBs,
-  Inspect Selected Script and Export ChatGPT Report.
+  Inspect Selected Script and Export Analysis Report.
 
 ## 0.1.1 - autorun distribution (pre-release)
 

@@ -81,7 +81,7 @@ function M.install(Core,api)
     inspect('selected')
   end)
 
-  command('Export ChatGPT Report',function()
+  command('Export Analysis Report',function()
     local dialog=api.createSaveDialog(api.getMainForm())
 
     local ok,err=pcall(function()

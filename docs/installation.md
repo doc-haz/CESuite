@@ -1,7 +1,7 @@
-# CESuite 0.1.9 installation (local audit candidate)
+# CESuite 0.1.9.1 installation
 
 Choose either mode. Both run locally without Python, GitHub, network access,
-credentials or tokens. The build is not yet a validated GitHub Release.
+credentials or tokens.
 
 ## Permanent autorun installation
 
@@ -10,7 +10,7 @@ The user's confirmed installation is **Cheat Engine 7.7.1**, executables reporti
 
 1. Close Cheat Engine. Back up any previous `CESuite_Autorun.lua` and `cesuite`
    folder before upgrading. Do not mix modules from different versions.
-2. Extract **the contents** of `CESuite_Autorun_v0.1.9.zip` directly into
+2. Extract **the contents** of `CESuite_Autorun_v0.1.9.1.zip` directly into
    `C:\Program Files\Cheat Engine\autorun\`.
 3. Verify these exact locations; do not add another `autorun` or ZIP-name folder:
 
@@ -59,7 +59,7 @@ the next CE start loads it again. Restore backed-up files with CE closed to roll
 
 ## Portable CT
 
-Open `CESuite_Core_v0.1.9.CT` and allow this Core's table Lua. The existing
+Open `CESuite_Core_v0.1.9.1.CT` and allow this Core's table Lua. The existing
 `releases/CESuite_Core.CT` remains an identical unversioned compatibility path.
 The CT is self-contained and does not need the ZIP. Load it before your target CT,
 because opening a CT can replace CE's current address list. For an existing table,
@@ -83,7 +83,7 @@ Run `python tools/build_ce.py` from the repository to generate both versioned
 artifacts under `releases/`, plus the existing unversioned CT and Lua paths.
 `--output PATH` selects another destination. Version comes from
 `ce/CESuite_Core.lua`. ZIP metadata and ordering are fixed for reproducible builds.
-Generated ZIPs and versioned CTs are local build outputs; no Release is published.
+Generated ZIPs and versioned CTs are build outputs under `releases/`.
 
 Run the Lua runner and Python checks listed in [runtime-core.md](runtime-core.md).
 The Lua runner also extracts a freshly built ZIP into a temporary path containing
@@ -116,7 +116,7 @@ candidate built and checked for this mission, not a historical package:
 ```powershell
 $ceAutorun = 'C:\Program Files\Cheat Engine\autorun'
 $ceBackup = Join-Path 'C:\Azuara\CESuite\local-backups' ('CE-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
-$cePackage = 'C:\Azuara\CESuite\releases\CESuite_Autorun_v0.1.9.zip'
+$cePackage = 'C:\Azuara\CESuite\releases\CESuite_Autorun_v0.1.9.1.zip'
 $ceOldTree = Join-Path $ceAutorun 'cesuite'
 $ceOldLoader = Join-Path $ceAutorun 'CESuite_Autorun.lua'
 if (-not (Test-Path -LiteralPath $cePackage)) { throw 'Package missing' }
@@ -161,11 +161,11 @@ foreach ($ceRelative in $ceExpected) {
 }
 ```
 
-Restart CE (mandatory). About CESuite must report **0.1.9**, **ready**, **autorun**,
+Restart CE (mandatory). About CESuite must report **0.1.9.1**, **ready**, **autorun**,
 with exactly one CESuite menu. In CE's Lua console:
 
 ```lua
-assert(CESuiteCore and CESuiteCore.version=='0.1.9')
+assert(CESuiteCore and CESuiteCore.version=='0.1.9.1')
 assert(CESuiteCore.status=='ready' and CESuiteCore.distribution=='autorun')
 print(CESuiteCore.version, CESuiteCore.status, CESuiteCore.distribution)
 ```

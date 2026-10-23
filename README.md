@@ -41,7 +41,7 @@ Module dumping is a separate, explicit action.
 | **Inspect Selected Script** | Focused inventory of the selected MemoryRecord's script. |
 | **Validate AOBs** | Fresh process/table capture and scans for supported literal `aobscan` / `aobscanmodule` patterns, with counts and available match addresses. |
 | **Dependency Summary** | Grouped lexical dependency occurrences, preserving raw evidence; not a resolved runtime dependency graph. |
-| **Export ChatGPT Report** | A fresh normalized JSON report, including supported AOB re-scans. You choose where to save it; nothing is uploaded. |
+| **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, AI-assisted analysis or external tooling. You choose where to save it; nothing is uploaded. |
 | **Export Module Dump** | A loaded PE module in mapped-image layout, plus JSON metadata, progress, cancellation and backup-preserving overwrite confirmation. |
 
 ## Installation
@@ -70,7 +70,7 @@ See [installation, upgrade and removal instructions](docs/installation.md) for d
 6. Use **Analyze Current Process** to inspect the current target.
 7. Use **Analyze Loaded Table** or **Inspect Selected Script** to inspect the CT.
 8. Use **Validate AOBs** when you need current memory-match evidence.
-9. Use **Export ChatGPT Report** to save a normalized analysis report.
+9. Use **Export Analysis Report** to save a normalized analysis report.
 10. If you also need module bytes, choose **Export Module Dump**, verify the exact module filename and select a writable destination.
 
 Review exported scripts, paths and memory contents before sharing them with a person or AI service.

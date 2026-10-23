@@ -36,7 +36,7 @@ conservative Lua/RVA hook inventory.
      standalone table Lua is reported unavailable; no scans.
    - **Validate AOBs**: fresh process/table snapshot followed by scoped scans.
    - **Inspect Selected Script**: inventory of the selected MemoryRecord.
-   - **Export ChatGPT Report**: choose `CESuite_Runtime_Report.json`; collect a
+   - **Export Analysis Report**: choose `CESuite_Runtime_Report.json`; collect a
      **fresh full snapshot and re-scan** before writing. Never exports an old scan
      against a newly selected process/table.
    - **Dependency Summary**: grouped lexical occurrences; no resolved runtime edges.
@@ -126,7 +126,7 @@ The JSON schema and versions are unchanged: context was already optional.
   inventory and lexical parsing; no AOB scan or disassembly.
 - Dependency Summary: table analysis followed by pure aggregation and JSON
   display; no dependency resolution.
-- Validate AOBs and Export ChatGPT Report: fresh capture and scoped MemScan/
+- Validate AOBs and Export Analysis Report: fresh capture and scoped MemScan/
   FoundList validation remain. Export encodes data and writes the selected file
   with io.open; it does not request instruction context.
 - Environment calls: getOpenedProcessID, getCEVersion, targetIs64Bit, enumModules,

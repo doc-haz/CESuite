@@ -9,10 +9,10 @@ local UI=require('ui')
 local Dependencies=require('dependencies')
 local Semantics=require('semantics')
 local ModuleDump=require('moduledump')
-local Core={identity='CESuiteCore',version='0.1.9',schema_version='0.1',status='stopped',state=Life.new()}
+local Core={identity='CESuiteCore',version='0.1.9.1',schema_version='0.1',status='stopped',state=Life.new()}
 function Core.analyze(mode)
   return Core.state.run(function()
-    local r={schema_version=Core.schema_version,core_version=Core.version,
+    local r={schema_version=Core.schema_version,core_version='0.1.9',
       generated_at=os.date('!%Y-%m-%dT%H:%M:%SZ'),mode=mode,observation_only=true,
       records=U.array(),scripts=U.array(),aobs=U.array(),resources=U.array(),dependencies=U.array(),diagnostics=U.array(),
       limitations=U.array({'Dependencies are partial lexical occurrences, not resolved cross-script links or runtime availability; provides/requires remain unverified.',
