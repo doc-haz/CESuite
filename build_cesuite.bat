@@ -1,5 +1,5 @@
 @echo off
-cd /d C:\Azuara\CESuite
+cd /d "%~dp0"
 
 echo.
 echo === Building CESuite ===
