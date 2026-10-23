@@ -172,6 +172,19 @@ Still pending as nonblocking follow-up work:
 
 See [P0 closure and automated evidence](docs/p0-closure.md) and [exact v0.1.9 live observations and limits](docs/validation/live-0.1.9.md).
 
+## Credits
+
+CESuite is developed and maintained by **doc-haz**.
+
+Special thanks to the AI-assisted engineering team used during development and validation:
+
+- **CHATSY®** — project coordination, technical review and release planning
+- **MAGNA** — engineering and implementation support
+- **DIESEL** — independent auditing and verification
+- **PREMIUM** — implementation, testing and release-preparation support
+
+Final technical and release decisions remain with the project maintainer.
+
 ## Documentation
 
 - [Installation, upgrade and removal](docs/installation.md)
