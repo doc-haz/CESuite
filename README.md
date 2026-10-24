@@ -193,6 +193,12 @@ Special thanks to the AI-assisted engineering team used during development and v
 
 Final technical and release decisions remain with the project maintainer.
 
+## License
+
+CESuite is licensed under the Apache License 2.0.
+
+See `LICENSE` for details.
+
 ## Documentation
 
 - [Installation, upgrade and removal](docs/installation.md)
