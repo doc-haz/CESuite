@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0 - Final Stable Release
+
+- **Static Lua AOB Analysis**: Passive lexical analysis of table Lua scripts for supported AOB patterns (literal assignments, variable concatenations, table indexing, multi-custom-scan wrappers, and unlinked library declarations).
+- **In-CE Menu Actions**:
+  - `Static Lua AOB Analysis`: runs passive lexical Lua analysis on the loaded table and displays results in the read-only JSON viewer.
+  - `Export Static Lua Report`: exports a full runtime report enriched with the `static_lua_analysis` section.
+- **Formal Standalone Schema**: Added `schemas/static-lua-report.schema.json` formalizing the exact contract of standalone static Lua analysis reports produced by `Core.analyzeStaticLua()`.
+- **Enriched Runtime Reports**: `Core.exportEnriched()` exports a full runtime report enriched with the `static_lua_analysis` section alongside standard runtime observations without executing user scripts or target code.
+- **Strict Evidence Separation**: Lexical static source observations are held under `static_lua_analysis` (or `lua_aobs`) with `provenance: "static-lua"` and `uniqueness: "unverified"`; lexical candidates are never promoted to memory-verified runtime observations.
+- **Single Source of Truth for suite_version**: Canonical tool version defined in `Core.version` (`0.2.0`), shared across runtime, exporter, tooling and tests.
+- **Parity & Dual Implementation**: Dual Lua 5.3 and Python analyzer engines verified with 10/10 corpus test parity.
+- **Licensing**: Formally licensed under the Apache License, Version 2.0.
+- **Runtime Compatibility**: Runtime report format, `core_version: "0.1.9"` compatibility level, and runtime schema validation are strictly preserved.
+
 ## 0.2.0-beta1 - Beta
 
 - **Static Lua AOB Analysis**: Added passive lexical analysis of table Lua scripts for supported AOB patterns (literal assignments, variable concatenations, table indexing, multi-custom-scan wrappers, and unlinked library declarations).

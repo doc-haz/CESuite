@@ -1,4 +1,4 @@
-# CESuite 0.1.9.1 installation
+# CESuite 0.2.0 installation
 
 Choose either mode. Both run locally without Python, GitHub, network access,
 credentials or tokens.
@@ -10,17 +10,18 @@ The user's confirmed installation is **Cheat Engine 7.7.1**, executables reporti
 
 1. Close Cheat Engine. Back up any previous `CESuite_Autorun.lua` and `cesuite`
    folder before upgrading. Do not mix modules from different versions.
-2. Extract **the contents** of `CESuite_Autorun_v0.1.9.1.zip` directly into
+2. Extract **the contents** of `CESuite_Autorun_v0.2.0.zip` directly into
    `C:\Program Files\Cheat Engine\autorun\`.
 3. Verify these exact locations; do not add another `autorun` or ZIP-name folder:
 
    ```text
    C:\Program Files\Cheat Engine\autorun\
    |-- CESuite_Autorun.lua
+   |-- LICENSE
    `-- cesuite\
+       |-- aob.lua
        |-- bootstrap.lua
        |-- core.lua
-       |-- aob.lua
        |-- ct.lua
        |-- dependencies.lua
        |-- disassembly.lua
@@ -28,6 +29,7 @@ The user's confirmed installation is **Cheat Engine 7.7.1**, executables reporti
        |-- exporter.lua
        |-- lifecycle.lua
        |-- luanames.lua
+       |-- luastatic.lua
        |-- moduledump.lua
        |-- parser.lua
        |-- semantics.lua
@@ -53,13 +55,15 @@ absolute paths in a private environment, independent of working directory,
 `package.path` and `package.loaded`. Missing or malformed modules produce an error
 and do not publish a partially loaded singleton. Correct the package and restart CE.
 
-To uninstall, close CE and remove only `autorun\CESuite_Autorun.lua` and
+To uninstall, close CE and remove only `autorun\CESuite_Autorun.lua`, `autorun\LICENSE` and
 `autorun\cesuite\`. **Remove CESuite Menu** hides it for the current session;
-the next CE start loads it again. Restore backed-up files with CE closed to roll back.
+the next CE start loads it again. To roll back to a previous release (such as v0.1.9.1),
+close CE, remove the v0.2.0 autorun files, and restore the previous `CESuite_Autorun_v0.1.9.1.zip`
+package or backed-up files.
 
 ## Portable CT
 
-Open `CESuite_Core_v0.1.9.1.CT` and allow this Core's table Lua. The existing
+Open `CESuite_Core_v0.2.0.CT` and allow this Core's table Lua. The existing
 `releases/CESuite_Core.CT` remains an identical unversioned compatibility path.
 The CT is self-contained and does not need the ZIP. Load it before your target CT,
 because opening a CT can replace CE's current address list. For an existing table,
@@ -115,8 +119,8 @@ candidate built and checked for this mission, not a historical package:
 
 ```powershell
 $ceAutorun = 'C:\Program Files\Cheat Engine\autorun'
-$ceBackup = Join-Path 'C:\Azuara\CESuite\local-backups' ('CE-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
-$cePackage = 'C:\Azuara\CESuite\releases\CESuite_Autorun_v0.1.9.1.zip'
+$ceBackup = Join-Path 'C:\CESuiteBackup' ('CE-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
+$cePackage = 'C:\CESuiteBackup\CESuite_Autorun_v0.2.0.zip'
 $ceOldTree = Join-Path $ceAutorun 'cesuite'
 $ceOldLoader = Join-Path $ceAutorun 'CESuite_Autorun.lua'
 if (-not (Test-Path -LiteralPath $cePackage)) { throw 'Package missing' }
@@ -149,7 +153,7 @@ Expand-Archive -LiteralPath $cePackage -DestinationPath $ceVerify
 $ceExpected = @(Get-ChildItem -LiteralPath $ceVerify -File -Recurse | ForEach-Object {
     $_.FullName.Substring($ceVerify.Length).TrimStart('\')
 })
-$ceActual = @('CESuite_Autorun.lua') + @(Get-ChildItem -LiteralPath $ceOldTree -File -Recurse | ForEach-Object {
+$ceActual = @(Get-ChildItem -LiteralPath $ceAutorun -File -Recurse | ForEach-Object {
     $_.FullName.Substring($ceAutorun.Length).TrimStart('\')
 })
 if (Compare-Object ($ceExpected | Sort-Object) ($ceActual | Sort-Object)) { throw 'Installed file list differs from ZIP' }
@@ -161,11 +165,11 @@ foreach ($ceRelative in $ceExpected) {
 }
 ```
 
-Restart CE (mandatory). About CESuite must report **0.1.9.1**, **ready**, **autorun**,
+Restart CE (mandatory). About CESuite must report **0.2.0**, **ready**, **autorun**,
 with exactly one CESuite menu. In CE's Lua console:
 
 ```lua
-assert(CESuiteCore and CESuiteCore.version=='0.1.9.1')
+assert(CESuiteCore and CESuiteCore.version=='0.2.0')
 assert(CESuiteCore.status=='ready' and CESuiteCore.distribution=='autorun')
 print(CESuiteCore.version, CESuiteCore.status, CESuiteCore.distribution)
 ```
@@ -174,4 +178,4 @@ There is no per-module loaded-version API: About alone cannot prove module
 provenance. The complete disk-file/hash check plus a cold restart verifies the
 normal absolute-path loader's input. Do not run a stale portable CT/Lua loader or
 mix module versions after that restart. Complete the live checklist in
-[live-0.1.9.md](validation/live-0.1.9.md) and record exact package hashes/results.
+[live-0.2.0.md](validation/live-0.2.0.md) and record exact package hashes/results.

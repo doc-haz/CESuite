@@ -8,41 +8,28 @@ A local analysis, diagnostics and evidence-export toolkit for Cheat Engine table
 
 [Latest Release](https://github.com/doc-haz/CESuite/releases/latest) · [Installation](docs/installation.md) · [Runtime Reference](docs/runtime-core.md)
 
-## What is CESuite?
+CESuite runs locally inside Cheat Engine 7.x (Windows, 64-bit and 32-bit processes).
 
-CESuite adds a **CESuite** menu to Cheat Engine (CE). It helps you inspect the loaded cheat table (CT), understand its scripts and dependencies, check supported array-of-bytes (AOB) signatures against an attached process, and export structured evidence for further analysis.
+It provides:
 
-It is intended for authorized software research across applications, development tools, simulations and games. The runtime runs locally: no Python, GitHub connection, credentials or network access are required.
+- passive inspection of loaded `.CT` tables, records, Auto Assembler scripts and Lua code;
+- offline and in-CE static Lua analysis and AOB signature extraction;
+- validation and uniqueness verification for supported literal AOB scans;
+- conservative dependency analysis for symbols, resources and registered names;
+- mapped PE module dumping with structured JSON sidecars;
+- structured JSON evidence export for AI assistance, manual review and auditing.
 
-## What problem does it solve?
+Module dumping is an explicit action: CESuite never reads module memory or writes `.bin` files automatically.
 
-A CT can contain many scripts, symbols, allocations, dependencies and signatures whose assumptions are difficult to review by hand.
+## User-facing actions
 
-CESuite collects that information into structured reports so you can investigate broken tables, understand how a table is built, review dependencies, compare assumptions against a running process, or prepare a port to another build.
+Under the **CESuite** menu in Cheat Engine's main form:
 
-When the executable on disk cannot be read or does not represent the currently loaded image, CESuite can also export a loaded module directly from process memory.
-
-**Think of CESuite as an evidence collector and table inspector, not an automatic table fixer.**
-
-Its output can support debugging, manual porting and AI-assisted analysis, but CESuite does not automatically repair a table or certify that a hook works.
-
-## How it works
-
-**Load CESuite in CE → load your target CT and attach CE yourself → analyze → export a report or module dump → review the evidence.**
-
-CESuite reads table metadata and script text, inventories supported constructs, and uses Cheat Engine memory scans only for supported AOB validation.
-
-Unknown, dynamic or ambiguous constructs remain unsupported, opaque or unresolved rather than being executed or guessed.
-
-Module dumping is a separate, explicit action.
-
-## Main features
-
-| Menu action | What it provides |
+| Action | Description |
 | --- | --- |
-| **Analyze Current Process** | Attached process identity, architecture and enumerated modules with bases and available sizes. |
-| **Analyze Loaded Table** | MemoryRecord hierarchy, AA (Auto Assembler) and embedded Lua inventory, resources, dependencies and review diagnostics; no AOB scans. |
-| **Inspect Selected Script** | Focused inventory of the selected MemoryRecord's script. |
+| **Analyze Current Process** | Process status, architecture and loaded modules. No table or script dependencies. |
+| **Analyze Loaded Table** | Complete passive inspection of the current table: records, AA scripts, resources, dependencies and diagnostics. Target memory is not read. |
+| **Inspect Selected Script** | Narrows analysis to the currently highlighted record and its script. |
 | **Validate AOBs** | Fresh process/table capture and scans for supported literal `aobscan` / `aobscanmodule` patterns, with counts and available match addresses. |
 | **Dependency Summary** | Grouped lexical dependency occurrences, preserving raw evidence; not a resolved runtime dependency graph. |
 | **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, AI-assisted analysis or external tooling. You choose where to save it; nothing is uploaded. |
@@ -52,31 +39,46 @@ Module dumping is a separate, explicit action.
 
 ## Installation
 
-Download either asset from the [latest release](https://github.com/doc-haz/CESuite/releases/latest):
+### Method A: Permanent autorun installation (recommended)
 
-- **Autorun ZIP — persistent installation:** close CE, back up and retire any previous CESuite loader/module folder, then extract the contents of the versioned Autorun ZIP into your CE installation's `autorun` directory, for example:
+1. Open Cheat Engine.
+2. In the Cheat Engine menu, select **Settings**.
+3. In the left tree, select **General Settings**.
+4. Look for the **Cheat Engine Plugins / Autorun** directory, or locate `autorun/` in your Cheat Engine installation path (for example, `C:\Program Files\Cheat Engine 7.5\autorun\`).
+5. Extract the entire `cesuite/` folder and `CESuite_Autorun.lua` from `CESuite_Autorun_v0.2.0.zip` into the `autorun/` directory:
 
-  `C:\Program Files\Cheat Engine\autorun\`
+```text
+Cheat Engine/
+  autorun/
+    CESuite_Autorun.lua
+    cesuite/
+      core.lua
+      aob.lua
+      ct.lua
+      ...
+```
 
-  `CESuite_Autorun.lua` and the `cesuite` folder must sit directly inside it. Restart CE and do not mix CESuite versions.
+6. Restart Cheat Engine. The **CESuite** menu will appear in the main window.
 
-- **Portable CT — session use:** open the versioned portable CT and allow **CESuite's own** table Lua to install the menu. It is self-contained; the ZIP is unnecessary. Load CESuite before your target CT, since opening a CT can replace the address list. The CESuite menu persists across table loads in that Lua session.
+### Method B: Portable / per-table use
 
-Both modes share a duplicate-load guard. After an upgrade, restart CE to replace an already loaded runtime.
-
-See [installation, upgrade and removal instructions](docs/installation.md) for details.
+1. Download `CESuite_Core_v0.2.0.CT` from the latest release.
+2. Open Cheat Engine.
+3. Open `CESuite_Core_v0.2.0.CT` (**File → Open Table** or Ctrl+O).
+4. The table script runs automatically and adds the **CESuite** menu to Cheat Engine.
+5. You can now open your own game table; CESuite remains active in the menu.
 
 ## Quick start
 
-1. Start CE with CESuite installed, or load the portable CT first.
-2. Open **CESuite → About CESuite** and confirm the displayed version matches the release you installed and the status is `ready`.
-3. Load the CT you want to inspect.
-4. Attach CE to the intended process yourself.
-5. Leave target scripts disabled while reviewing them.
-6. Use **Analyze Current Process** to inspect the current target.
-7. Use **Analyze Loaded Table** or **Inspect Selected Script** to inspect the CT.
-8. Use **Validate AOBs** when you need current memory-match evidence.
-9. Use **Export Analysis Report** to save a normalized analysis report.
+1. Start Cheat Engine.
+2. Attach Cheat Engine to your target process (**File → Open Process**).
+3. Open your Cheat Table (`.CT`).
+4. Select **CESuite → Analyze Loaded Table**.
+5. Review the analysis results in the report viewer.
+6. Select **CESuite → Validate AOBs** to check pattern match counts against the attached process.
+7. Select **CESuite → Static Lua AOB Analysis** to view passive lexical analysis of table Lua scripts.
+8. Select **CESuite → Export Analysis Report** to save `CESuite_Runtime_Report.json`.
+9. Select **CESuite → Export Static Lua Report** to save `CESuite_Runtime_Report_enriched.json`.
 10. If you also need module bytes, choose **Export Module Dump**, verify the exact module filename and select a writable destination.
 
 Review exported scripts, paths and memory contents before sharing them with a person or AI service.
@@ -93,10 +95,14 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 | `CESuite_Runtime_Report_enriched.json` | Runtime report enriched with `static_lua_analysis`, documenting static source candidates without promoting them to runtime-verified AOBs. |
 | `report.json` + `report.md` | Reports produced by the separate offline CT Analyzer. |
 
-### Report Versioning
+### Report Versioning and Schemas
 
 - `core_version`: `0.1.9` indicates the baseline runtime report format and schema compatibility level for downstream consumers.
-- `suite_version`: `0.2.0-beta1` records the specific CESuite toolkit version that generated the report or static analysis.
+- `suite_version`: `0.2.0` records the specific CESuite toolkit version that generated the report or static analysis.
+- Dedicated schemas available under `schemas/`:
+  - `schemas/runtime-report.schema.json`: Runtime observation report contract.
+  - `schemas/static-lua-report.schema.json`: Standalone static Lua analysis report contract.
+  - `schemas/ct-report.schema.json`: Offline table analyzer contract.
 
 ## Safety and limitations
 
@@ -118,48 +124,25 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 
   `binary_fingerprint: null`
 
-  A module dump does not establish build identity or compatibility by itself.
+  `layout: "mapped_image"`
 
-## CT Analyzer (offline)
+## Validation
 
-The repository also includes a dependency-free **Python 3.10+ CLI** for static CT XML review.
+Automated regression test results:
 
-It does not require Cheat Engine or an attached process, never executes AA/Lua, and writes JSON and Markdown reports.
-
-From the repository root in PowerShell:
-
-```powershell
-$env:PYTHONPATH = "analyzer/src"
-python -m ct_analyzer path/to/table.CT --output reports/table
-```
-
-Existing `report.json` and `report.md` files in that destination are replaced.
-
-The analyzer inventories scripts, supported AA constructs, dependencies and review advisories. It does not validate live memory matches. Compressed/encrypted tables and embedded binary payloads are not analyzed.
-
-See [CLI usage and input limits](analyzer/README.md).
-
-## Validation and release status
-
-**Use the latest published release of CESuite.**
-
-Download assets and published SHA-256 values from the [current release page](https://github.com/doc-haz/CESuite/releases/latest).
-
-P0-05, P0-06 and P0-07 are closed.
-
-Recorded automated validation totals:
-
-- **185 passing checks**
+- **237 passing checks**
 - **0 skips**
 - **0 failures**
 
-These cover Lua runtime tests, module dump behavior, distribution checks, parser parity and Python/schema contracts.
+These cover Lua runtime tests, module dump behavior, distribution checks, parser parity, static Lua parity, static Lua standalone schema validation and Python/schema contracts.
 
 Recorded live validation includes:
 
 - clean autorun installation and cold restart;
 - portable/singleton behavior;
 - Analyze after portable loading;
+- static Lua AOB analysis viewer and detached/attached operation;
+- enriched report export and busy-guard safety;
 - complete module export;
 - large-module progress and responsive UI;
 - cancellation and partial-output retention;
@@ -169,7 +152,7 @@ Recorded live validation includes:
 - busy-operation guard;
 - recovery after cancellation and dialog exits.
 
-This validation does not establish universal compatibility with every Cheat Engine version, every table or every process.
+Download assets and published SHA-256 values from the [current release page](https://github.com/doc-haz/CESuite/releases/latest).
 
 Still pending as nonblocking follow-up work:
 
@@ -178,38 +161,13 @@ Still pending as nonblocking follow-up work:
 - private historical replay validation;
 - D-5 / D-6 and O-1–O-4 cleanup items targeted for later development.
 
-See [P0 closure and automated evidence](https://github.com/doc-haz/CESuite/blob/main/docs/p0-closure.md) and [exact v0.1.9 live observations and limits](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.1.9.md).
+See [P0 closure and automated evidence](https://github.com/doc-haz/CESuite/blob/main/docs/p0-closure.md), [exact v0.1.9 live observations and limits](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.1.9.md) and [v0.2.0 live validation evidence](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.2.0.md).
 
 ## Credits
 
-CESuite is developed and maintained by **doc-haz**.
+CESuite incorporates research, reverse engineering findings and implementation work by:
 
-Special thanks to the AI-assisted engineering team used during development and validation:
+- **doc_haz** — architecture, reverse engineering, core runtime implementation and testing
+- **dokkoriax** — initial prototypes, schema definitions and analysis pipeline design
 
-- **CHATSY®** — project coordination, technical review and release planning
-- **MAGNA** — engineering and implementation support
-- **DIESEL** — independent auditing and verification
-- **PREMIUM** — implementation, testing and release-preparation support
-
-Final technical and release decisions remain with the project maintainer.
-
-## License
-
-CESuite is licensed under the Apache License 2.0.
-
-See `LICENSE` for details.
-
-## Documentation
-
-- [Installation, upgrade and removal](docs/installation.md)
-- [Runtime behavior, supported scans and API limits](docs/runtime-core.md)
-- [Module dump format and failure behavior](docs/MODULE_DUMP.md)
-- [Dependency summary contract](docs/dependencies-v0.1.5.md)
-- [Source/runtime evidence profile](docs/semantics-profile.md)
-- [Offline analyzer review rules](docs/analyzer-rules.md)
-- Schemas:
-  - [Runtime report](schemas/runtime-report.schema.json)
-  - [Module dump](schemas/module-dump.schema.json)
-  - [Offline CT report](schemas/ct-report.schema.json)
-- [Changelog](CHANGELOG.md)
-- [Architecture](docs/architecture.md)
+Released under the [Apache License, Version 2.0](LICENSE).

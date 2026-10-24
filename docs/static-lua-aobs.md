@@ -1,61 +1,63 @@
 # Static Lua AOB Analysis
 
-Passive source inventory for Lua scripts in Cheat Engine tables (`.CT`).
+`ct_analyzer` extracts literal Auto Assembler AOB patterns from Cheat Tables.
+`ct_analyzer.lua_static` extends that capability to table Lua without
+executing inspected scripts, user-defined functions or target memory.
 
-## Purpose
+## Capabilities
 
-Cheat Engine tables frequently configure and register AOB scans through Lua scripts
-rather than pure Auto Assembler (AA) headers. This tool performs a bounded,
-passive lexical scan of:
+The static analyzer resolves:
 
-- Root `<LuaScript>` blocks.
-- Embedded Lua files stored under `<Files>` (decompressed via Ascii85/DEFLATE).
-- Embedded Lua blocks inside Auto Assembler scripts (`{$lua} ... {$asm}`).
+- literal variable assignments and aliases: `local pattern = '48 8B 05 ??'`;
+- string concatenations (`..`) of string literals and resolved variables;
+- static table construction and literal indexing: `patterns.godmode`, `tbl[1]`;
+- supported sink calls (case-insensitive):
+  - `aobScan` / `AOBScan`
+  - `aobScanModule` / `AOBScanModule`
+  - `aobScanRegion` / `AOBScanRegion`
+  - `customScan`
+  - `Register.multiCustomScan`
+  - `Register.onEnable`
+- unlinked library signature declarations: tables or properties declared with `*.Sig` / `*.Sig.*`;
+- embedded Lua blocks (`{$lua}`) in Auto Assembler scripts;
+- base85 and DEFLATE compressed embedded table files (`Files/*.lua`).
 
-It inventories literal and statically resolvable AOB patterns without executing
-inspected Lua code, starting a Lua VM or attaching to target processes.
+## Safety and Limits
 
-## Capabilities and Constraints
+- **Passive only:** input source is parsed into tokens and analyzed via bounded
+  AST traversal. No Lua code or target process API is called.
+- **Fail-closed:** dynamic concatenations, function returns, unresolved table
+  lookups, cycles and loops remain `status: "unknown"` with pattern `null`.
+- **Resource bounds:** input source is capped at 2 MiB, token count at 150,000,
+  AST depth at 48 levels, and resolved string length at 64 KiB.
+- **Observation only:** extracted patterns are recorded with `status: "source-candidate"`,
+  `confidence: "lexical"`, `match_count: null`, and `uniqueness: "unverified"`.
+  They are never promoted to runtime-verified AOBs without explicit memory scans.
 
-- **Supported sinks:** `aobScan`, `aobScanModule`, `aobScanRegion`, `customScan`,
-  and common wrappers like `Register.multiCustomScan` and `Register.onEnable`.
-- **Resolvable expressions:** single-assignment string literals, string
-  concatenation (`..`), aliases, table field lookups (`t.field`, `t[idx]`),
-  and nested row declarations.
-- **Library declarations:** unlinked library patterns (such as `Obj.Sig` or
-  `UE.Sig.*`) are inventoried as unlinked declarations without assuming object
-  initialization.
-- **Fail-safe boundaries:** reassignments, runtime calls (`func()`), forward
-  references, dynamic control flow, arithmetic, and expressions exceeding depth or
-  token limits remain `status: "unknown"` with `pattern: null`.
-- **No runtime promotion:** static candidates are labeled `provenance: "static-lua"`
-  and `uniqueness: "unverified"`. They are never merged into runtime-verified AOB
-  match results.
+## Integration
 
-## CLI and In-CE Usage
+Use `ct_analyzer.lua_static.analyze_lua(source, script_id)` directly, or use
+`tools/enrich_static_aobs.py` to add `static_lua_analysis` to an existing
+runtime report:
 
-Run from the repository root:
-
-```powershell
-$env:PYTHONPATH = 'analyzer/src'
-python -m ct_analyzer input.CT --output reports/static
-python -m unittest discover -s analyzer/tests -v
-python tools/enrich_static_aobs.py input.CT runtime.json reports/enriched.json
+```bash
+python tools/enrich_static_aobs.py table.CT runtime.json enriched.json
 ```
 
 The enrichment command preserves original runtime observations and adds
 `static_lua_analysis`. Input hashes establish provenance, not that the CT is
 the same table loaded when the runtime report was produced.
 
-In addition to offline Python analysis, CESuite 0.2.0-beta1 adds two in-CE menu commands under CESuite:
+In addition to offline Python analysis, CESuite 0.2.0 adds two in-CE menu commands under CESuite:
 - `Static Lua AOB Analysis`: runs passive lexical Lua analysis on the loaded table and displays results in the viewer.
 - `Export Static Lua Report`: exports a full runtime report enriched with the `static_lua_analysis` section.
 
-### Versioning and Provenance
+### Versioning, Provenance and Schema
 
 Reports distinguish between engine compatibility and tool suite release:
 - `core_version`: `0.1.9` indicates the baseline runtime report format and schema contract compatibility level. Existing automated consumers relying on `0.1.9` runtime semantics continue to parse reports without breaking changes.
-- `suite_version`: `0.2.0-beta1` records the actual CESuite release that executed the analysis and generated the static/enriched report. When available, it is exposed in the `static_lua_analysis` section and in the in-CE viewer.
+- `suite_version`: `0.2.0` records the actual CESuite release that executed the analysis and generated the static/enriched report. When available, it is exposed in the `static_lua_analysis` section and in the in-CE viewer.
+- A dedicated JSON schema for standalone static Lua reports is available at [`schemas/static-lua-report.schema.json`](../schemas/static-lua-report.schema.json).
 
 ## Synthetic Test Fixture
 

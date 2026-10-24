@@ -10,10 +10,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def version(source=None):
     text = source if source is not None else (ROOT / 'ce/CESuite_Core.lua').read_text(encoding='utf-8')
-    m = re.search(r"(?:Core\s*=\s*\{[^}]*?\bversion\s*=\s*['\"]|Core\.version\s*=\s*['\"])([0-9A-Za-z._-]+)['\"]", text)
-    if not m:
+    matches = re.findall(r"(?:Core\s*=\s*\{[^}]*?\bversion\s*=\s*['\"]|Core\.version\s*=\s*['\"])([0-9A-Za-z._+-]+)['\"]", text)
+    if not matches:
         raise ValueError('Could not extract Core.version from source')
-    return m.group(1)
+    if len(matches) > 1:
+        raise ValueError('Multiple Core.version declarations found in source')
+    return matches[0]
 
 
 def bundle():
@@ -42,6 +44,8 @@ def autorun_files():
              'cesuite/bootstrap.lua': (ROOT / 'ce/bootstrap.lua').read_text(encoding='utf-8')}
     for path in sorted((ROOT / 'ce/modules').glob('*.lua')):
         files['cesuite/' + path.name] = path.read_text(encoding='utf-8')
+    if (ROOT / 'LICENSE').is_file():
+        files['LICENSE'] = (ROOT / 'LICENSE').read_text(encoding='utf-8')
     return files
 
 

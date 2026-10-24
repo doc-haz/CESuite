@@ -10,7 +10,7 @@ import unittest
 import zipfile
 import xml.etree.ElementTree as ET
 
-from jsonschema import Draft202012Validator, ValidationError
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('build_ce', ROOT / 'tools/build_ce.py')
@@ -32,7 +32,23 @@ class RuntimeContractTests(unittest.TestCase):
 
     def setUp(self):
         self.schema = json.loads((ROOT / 'schemas/runtime-report.schema.json').read_text(encoding='utf-8'))
-        self.validator = Draft202012Validator(self.schema)
+        checker = FormatChecker()
+        @checker.checks('date-time')
+        def _check_datetime(val):
+            if not isinstance(val, str):
+                return True
+            import re
+            return bool(re.match(r'^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$', val))
+        self.validator = Draft202012Validator(self.schema, format_checker=checker)
+
+    def test_date_time_format_rejects_invalid_values(self):
+        report = self.profile_report()
+        for field in ('generated_at', 'completed_at'):
+            for bad in ('yesterday', '2026/10/24 12:00:00', 'not-a-timestamp', '2026-10-24'):
+                corrupted = copy.deepcopy(report)
+                corrupted[field] = bad
+                with self.assertRaises(ValidationError):
+                    self.validator.validate(corrupted)
 
     def test_unknown_section_provenance_contract(self):
         report = self.profile_report()
@@ -265,6 +281,8 @@ class RuntimeContractTests(unittest.TestCase):
             self.assertEqual(original, (output / name).read_bytes())
             expected = {'CESuite_Autorun.lua', 'cesuite/core.lua', 'cesuite/bootstrap.lua'}
             expected.update('cesuite/' + p.name for p in (ROOT / 'ce/modules').glob('*.lua'))
+            if (ROOT / 'LICENSE').is_file():
+                expected.add('LICENSE')
             with zipfile.ZipFile(output / name) as archive:
                 self.assertEqual(set(archive.namelist()), expected)
                 self.assertEqual(len(archive.namelist()), len(expected))
@@ -318,7 +336,7 @@ class RuntimeContractTests(unittest.TestCase):
             report = json.loads(enriched_content)
             self.assertEqual(report['core_version'], '0.1.9')
             self.assertIn('static_lua_analysis', report)
-            self.assertEqual(report['static_lua_analysis'].get('suite_version'), '0.2.0-beta1')
+            self.assertEqual(report['static_lua_analysis'].get('suite_version'), builder.version())
             self.assertIsInstance(report['static_lua_analysis']['source']['name'], str)
             self.assertNotEqual(report['static_lua_analysis']['source']['name'], '')
             self.validator.validate(report)

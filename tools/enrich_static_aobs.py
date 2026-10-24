@@ -11,6 +11,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'analyzer/src'))
 from ct_analyzer.core import MAX_BYTES, analyze
+from build_ce import version
 
 
 def enrich(table, runtime, output):
@@ -27,7 +28,7 @@ def enrich(table, runtime, output):
     with table.open('rb') as stream:
         static = analyze(stream.read(MAX_BYTES+1), table.name)
     report['static_lua_analysis'] = dict(
-        version='0.1', suite_version='0.2.0-beta1', source=static['source'],
+        version='0.1', suite_version=version(), source=static['source'],
         runtime_report_sha256=hashlib.sha256(raw).hexdigest(),
         association='user-supplied pair; identical loaded table is not proven',
         observations=static['lua_aobs'],

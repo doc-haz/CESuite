@@ -119,4 +119,18 @@ test('diagnostics emitted when static limits are hit instead of silent 0 observa
   eq(diagnostics[1].script_id, 'bad_script')
 end)
 
+test('enrichReport requires explicit suiteVersion (fail-closed)', function()
+  local ok, err = pcall(function()
+    LuaStatic.enrichReport({}, nil, nil)
+  end)
+  assert(not ok, 'enrichReport should fail without suiteVersion')
+  assert(err:find('suite version required'), 'error message should mention suite version required')
+
+  ok, err = pcall(function()
+    LuaStatic.enrichReport({}, '', nil)
+  end)
+  assert(not ok, 'enrichReport should fail with empty suiteVersion')
+  assert(err:find('suite version required'), 'error message should mention suite version required')
+end)
+
 print(string.format('%d direct luastatic tests passed', tests))

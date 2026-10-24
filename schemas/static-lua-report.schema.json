@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/doc-haz/CESuite/schemas/static-lua-report.schema.json",
+  "title": "CESuite Static Lua AOB Analysis Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "core_version",
+    "suite_version",
+    "ce_version",
+    "generated_at",
+    "completed_at",
+    "observation_only",
+    "target",
+    "candidate_count",
+    "unique_pattern_count",
+    "observations",
+    "diagnostics",
+    "limitations"
+  ],
+  "properties": {
+    "title": {
+      "const": "CESuite Static Lua AOB Analysis"
+    },
+    "core_version": {
+      "enum": [
+        "0.1.9"
+      ]
+    },
+    "suite_version": {
+      "type": "string"
+    },
+    "ce_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observation_only": {
+      "const": true
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "pid",
+        "attached",
+        "name",
+        "architecture",
+        "build_fingerprint"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "pid": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "attached": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "architecture": {
+          "enum": [
+            "x86",
+            "x64",
+            "unknown"
+          ]
+        },
+        "build_fingerprint": {
+          "type": "null"
+        }
+      }
+    },
+    "candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unique_pattern_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "script_id",
+          "line",
+          "sink",
+          "symbol",
+          "pattern",
+          "raw_pattern",
+          "status",
+          "confidence",
+          "provenance",
+          "evidence",
+          "scope",
+          "unknowns",
+          "match_count",
+          "uniqueness"
+        ],
+        "properties": {
+          "script_id": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sink": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pattern": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raw_pattern": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "source-candidate",
+              "unknown"
+            ]
+          },
+          "confidence": {
+            "const": "lexical"
+          },
+          "provenance": {
+            "const": "static-lua"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "scope": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unknowns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "match_count": {
+            "type": "null"
+          },
+          "uniqueness": {
+            "const": "unverified"
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

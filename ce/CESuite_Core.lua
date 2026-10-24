@@ -10,7 +10,7 @@ local Dependencies=require('dependencies')
 local Semantics=require('semantics')
 local ModuleDump=require('moduledump')
 local LuaStatic=require('luastatic')
-local Core={identity='CESuiteCore',version='0.2.0-beta1',schema_version='0.1',status='stopped',state=Life.new()}
+local Core={identity='CESuiteCore',version='0.2.0',schema_version='0.1',status='stopped',state=Life.new()}
 local function collectReport(mode)
   local r={schema_version=Core.schema_version,core_version='0.1.9',
     generated_at=os.date('!%Y-%m-%dT%H:%M:%SZ'),mode=mode,observation_only=true,
@@ -93,7 +93,7 @@ end
 function Core.exportEnriched(path)
   return Core.state.run(function()
     local r=collectReport('export')
-    LuaStatic.enrichReport(r)
+    LuaStatic.enrichReport(r, nil, Core.version)
     return Export.write(r,path)
   end)
 end

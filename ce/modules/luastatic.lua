@@ -592,7 +592,8 @@ function M.analyze(scripts, report)
   return observations, diagnostics, limitations
 end
 
-function M.enrichReport(report, sourceName)
+function M.enrichReport(report, sourceName, suiteVersion)
+  assert(type(suiteVersion) == 'string' and suiteVersion ~= '', 'suite version required')
   local observations, diagnostics, limitations = M.analyze(report.scripts)
   local rawJson = U.call(require('exporter'), 'encode', report) or ''
   local reportSha = sha256(rawJson)
@@ -621,7 +622,7 @@ function M.enrichReport(report, sourceName)
 
   report.static_lua_analysis = {
     version = '0.1',
-    suite_version = '0.2.0-beta1',
+    suite_version = suiteVersion,
     source = {
       name = srcName,
       sha256 = sourceSha
