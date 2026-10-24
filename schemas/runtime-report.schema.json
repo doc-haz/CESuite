@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/dokkoriax/CESuite/schemas/runtime-report.schema.json",
+  "$id": "https://github.com/doc-haz/CESuite/schemas/runtime-report.schema.json",
   "title": "CESuite Core Runtime Report 0.1",
   "type": "object",
   "required": [
@@ -563,6 +563,9 @@
           "type": "string"
         }
       }
+    },
+    "assessment": {
+      "$ref": "#/$defs/assessment"
     }
   },
   "allOf": [
@@ -1685,6 +1688,362 @@
                 "const": "not_performed"
               }
             }
+          }
+        }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "generated_at",
+        "completed_at",
+        "mode",
+        "scope",
+        "counts",
+        "headline",
+        "statements",
+        "diagnostics",
+        "repair_path",
+        "limitations"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "0.1"
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "attached",
+            "pid",
+            "process_name",
+            "module_count",
+            "script_count",
+            "aob_count",
+            "dependency_occurrence_count",
+            "static_candidate_count"
+          ],
+          "properties": {
+            "attached": {
+              "type": "boolean"
+            },
+            "pid": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "process_name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "module_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "script_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "aob_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "dependency_occurrence_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "static_candidate_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "problems",
+            "healthy",
+            "advisory",
+            "not_assessed"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "problems": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "healthy": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "advisory": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not_assessed": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "headline": {
+          "type": "string"
+        },
+        "statements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "rule",
+              "category",
+              "severity",
+              "status",
+              "outcome",
+              "label",
+              "summary",
+              "evidence",
+              "confidence",
+              "confidence_reason",
+              "likely_causes",
+              "suggested_next_steps",
+              "limitations",
+              "do_not_assume",
+              "source"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "rule": {
+                "type": "string"
+              },
+              "category": {
+                "enum": [
+                  "target",
+                  "module",
+                  "aob",
+                  "dependency",
+                  "static",
+                  "review",
+                  "evidence"
+                ]
+              },
+              "severity": {
+                "enum": [
+                  "high",
+                  "medium",
+                  "low",
+                  "info"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "observed",
+                  "candidate",
+                  "unknown",
+                  "unsupported"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "problem",
+                  "healthy",
+                  "advisory",
+                  "not_assessed"
+                ]
+              },
+              "label": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "confidence": {
+                "enum": [
+                  "high",
+                  "medium",
+                  "low",
+                  "unknown"
+                ]
+              },
+              "confidence_reason": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "likely_causes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "suggested_next_steps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "limitations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "do_not_assume": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "source": {
+                "enum": [
+                  "runtime",
+                  "lexical",
+                  "static",
+                  "structural"
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "required": [
+                    "outcome"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "const": "healthy"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "status": {
+                      "const": "observed"
+                    },
+                    "source": {
+                      "const": "runtime"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "source"
+                  ],
+                  "properties": {
+                    "source": {
+                      "enum": [
+                        "lexical",
+                        "static"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "candidate",
+                        "unknown",
+                        "unsupported"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "const": "observed"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "source": {
+                      "const": "runtime"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "repair_path": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "order",
+              "action",
+              "diagnostic_id",
+              "rationale"
+            ],
+            "properties": {
+              "order": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "action": {
+                "type": "string"
+              },
+              "diagnostic_id": {
+                "type": "string"
+              },
+              "rationale": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
           }
         }
       }

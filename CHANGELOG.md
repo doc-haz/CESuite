@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.1 - Reporting & Repair Guidance
+
+- **Diagnostic Model**: New derived layer (`ce/modules/diagnose.lua`) interprets evidence that already exists in a runtime report and produces a structured `assessment` with deterministic ordering. It never scans, edits, executes inspected code or invents evidence.
+- **Simple Report**: New Markdown report (`<base>_Simple.md`) that states what CESuite analyzed, what looks OK, what presents problems, the evidence and confidence behind each problem, possible causes, suggested next steps, limitations, do-not-assume notes and a fixed review order.
+- **Extensive Report**: New JSON report (`<base>_Extensive.json`) containing the runtime report, static Lua evidence and the same `assessment`, usable manually or by external tooling.
+- **New Menu Actions**:
+  - `Diagnostics Summary`: shows the Simple Report in the read-only viewer without writing files.
+  - `Export Reports`: writes the Simple and Extensive reports from one single collection.
+- **Supported diagnostics (evidence already collected)**: missing attachment, process change, unavailable or ambiguous module snapshot, AOB zero-match, AOB multiple-match, AOB unique (healthy), AOB not scanned, AOB unsupported, AOB scope unresolved, AOB scan error, aggregated unavailable/invalidated scans, unresolved lexical dependency provider, static Lua candidate only, unresolved static pattern, static analysis limit, aggregated review diagnostics and insufficient evidence.
+- **Status and confidence semantics**: `observed`, `candidate`, `unknown`, `unsupported`; `high`, `medium`, `low`, `unknown` with documented criteria. Static and lexical evidence can never be reported as a runtime observation; the schema enforces it.
+- **Fixed Repair Path**: documented, deterministic priority (target, modules, zero-match, ambiguous, unusable scans, dependencies, static-only, review, insufficient evidence); within a priority, sorted by severity and diagnostic id.
+- **Schema Extension**: `assessment` added to the runtime report schema as an optional, additive object. `core_version` remains `0.1.9` and existing reports still validate.
+- **No Autofix**: v0.2.1 does not modify AOBs, scripts, offsets, hooks, memory or target code.
+- **Dependency inventory**: Cheat Engine AOB scan API spellings (`AOBScanModule`, `AOBScanRegion`) are no longer treated as table dependencies, and the diagnostic layer never reports AOB sink names as unresolved table symbols.
+- **Paired Export**: `Export Reports` now behaves as one atomic pair. Both documents are written to reserved temporary names, existing reports are moved to reserved backup names, and the pair is only promoted when both documents are complete. A failure restores the previous pair and leaves no partial or mixed output; reserved names are never deleted. Exact semantics in `docs/reporting.md`.
+- **Controlled Export Errors**: `Core.exportReports()` returns `complete`, `cancelled` or `failed` status tables (with the previous files intact) instead of leaving a partial write; the simple-report writer reports I/O errors instead of throwing, and the busy guard is always released.
+- **Credits**: single attribution, `doc-haz` (formerly `dokkoriax`), with a note that earlier history may use the previous handle; schema `$id` aligned to the current repository handle.
+- **Documentation**: new `docs/reporting.md` (rules, confidence, ordering, formats, export semantics, limits); installation documentation generalized for supported Cheat Engine versions; neutral AI-assisted development statement restored in the README credits without internal team names; new `docs/validation/live-0.2.1.md` live evidence.
+- **Tests**: 284 passing checks (Lua runtime, diagnostic assessment, paired export, module dump, distribution, parser parity, static Lua parity, static Lua schema, assessment schema and Python contracts), 0 failures, 0 unexpected skips.
+
 ## 0.2.0 - Final Stable Release
 
 - **Static Lua AOB Analysis**: Passive lexical analysis of table Lua scripts for supported AOB patterns (literal assignments, variable concatenations, table indexing, multi-custom-scan wrappers, and unlinked library declarations).

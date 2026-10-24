@@ -42,6 +42,12 @@ conservative Lua/RVA hook inventory.
    - **Dependency Summary**: grouped lexical occurrences; no resolved runtime edges.
    - **Static Lua AOB Analysis**: passive lexical scan of table Lua scripts for supported AOB patterns, shown in the read-only JSON viewer.
    - **Export Static Lua Report**: collects a full analysis report enriched with passive static Lua AOB observations (`static_lua_analysis`) and prompts to save JSON.
+   - **Diagnostics Summary**: collects one fresh snapshot, derives the diagnostic assessment
+     and shows the **Simple Report** (Markdown text) in the read-only viewer. No files are
+     written. See [Reporting and repair guidance](reporting.md).
+   - **Export Reports**: one save dialog, two files derived from the same collection:
+     `<base>_Simple.md` (Markdown) and `<base>_Extensive.json` (runtime + static evidence +
+     `assessment`). Existing files require explicit overwrite confirmation.
    - **Export Module Dump**: explicit mapped-image export with progress, cancellation
      and backup-preserving overwrite confirmation. See [Module Dump](MODULE_DUMP.md).
    - **Remove CESuite Menu**: destroy only CESuite's owned menu/viewer objects.
@@ -51,7 +57,9 @@ Analysis commands show a read-only JSON viewer. The most recent object is also
 available as `CESuiteCore.last_report`. Developer calls:
 `CESuiteCore.analyze('validate')`, `CESuiteCore.analyzeStaticLua()`,
 `CESuiteCore.export(path)`, `CESuiteCore.exportEnriched(path)`,
-`CESuiteCore.shutdown()`. Reports can contain scripts and local paths; review their
+`CESuiteCore.simpleText()`, `CESuiteCore.exportReports(path,options)`,
+`CESuiteCore.buildAssessment(report)`, `CESuiteCore.shutdown()`.
+Reports can contain scripts and local paths; review their
 contents before sharing. No automatic upload is provided.
 
 Scans are synchronous and can take considerable time for a large process or many
@@ -174,6 +182,21 @@ The installed CE documentation also exposes `MemScan.ErrorString` (not present i
 all older online documentation). API access is guarded and missing capabilities
 produce unknown/error states. CE 7.7+ is the intended test target. CESuite 0.1.3 has been live-validated on
 Cheat Engine 7.7.1 in an x64 process session.
+
+## Diagnostic assessment (0.2.1)
+
+`Core.exportReports()` adds an optional `assessment` object to the runtime report and
+writes a Markdown Simple Report from the same object. The assessment interprets
+evidence that is already in the report; it never scans, edits or executes anything.
+`core_version` remains `0.1.9` because the addition is optional and ignored by
+consumers that do not read it. Field contract, status/confidence semantics and the
+fixed repair ordering are documented in [reporting.md](reporting.md).
+
+Both reports derive from a single collection: `Diagnostics Summary` shows the
+Markdown report in the viewer, and `Export Reports` writes
+`<base>_Simple.md` and `<base>_Extensive.json` together. Existing reports
+(`CESuite_Runtime_Report.json`, `CESuite_Runtime_Report_enriched.json`) are
+unchanged.
 
 ## Build and tests
 

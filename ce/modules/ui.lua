@@ -1,7 +1,7 @@
 local Export=require('exporter')
 local M={}
 
-function M.showReport(Core,api,report)
+local function present(Core,api,text)
   if not Core.viewer then
     Core.viewer=Core.state.own(api.createForm(false))
     Core.viewer.Caption='CESuite observation report'
@@ -20,8 +20,6 @@ function M.showReport(Core,api,report)
     Core.memo.WordWrap=false
   end
 
-  local text=Export.encode(report)
-
   if Core.memo.Lines then
     Core.memo.Lines.Text=text
   else
@@ -29,6 +27,15 @@ function M.showReport(Core,api,report)
   end
 
   Core.viewer.show()
+end
+
+function M.showReport(Core,api,report)
+  present(Core,api,Export.encode(report))
+end
+
+function M.showText(Core,api,text)
+  assert(type(text)=='string','Text report required')
+  present(Core,api,text)
 end
 
 function M.install(Core,api)
@@ -203,6 +210,42 @@ function M.install(Core,api)
       if dialog.execute() then
         Core.exportEnriched(dialog.FileName)
         api.showMessage('CESuite static Lua report saved: '..dialog.FileName)
+      end
+    end)
+    dialog.destroy()
+    if not ok then error(err) end
+  end)
+
+  command('Diagnostics Summary',function()
+    local text=Core.simpleText()
+    Core.showText(text)
+  end)
+
+  command('Export Reports',function()
+    local dialog=api.createSaveDialog(api.getMainForm())
+    local ok,err=pcall(function()
+      dialog.FileName='CESuite_Report'
+      dialog.DefaultExt='md'
+      dialog.Filter='CESuite reports|*.md'
+      dialog.Options='[ofPathMustExist]'
+      if not dialog.execute() then return end
+      local result=Core.exportReports(dialog.FileName,{confirmOverwrite=function(files)
+        local answer=api.messageDialog('These report files already exist:\n'..table.concat(files,'\n')..
+          '\n\nReplace them?',
+          api.mtConfirmation or 3,api.mbYes or 0,api.mbNo or 1)
+        return answer==(api.mrYes or 6)
+      end})
+      if result.status=='cancelled' then
+        api.showMessage('CESuite: overwrite cancelled; existing reports were kept.')
+      elseif result.status=='complete' then
+        api.showMessage('CESuite reports saved:'..
+          '\nSimple: '..result.simple..
+          '\nExtensive: '..result.extensive..
+          (result.retained_backups and
+            ('\nPrevious copies retained as '..'.cesuite-backup files.') or ''))
+      else
+        api.showMessage('CESuite: '..(result.error or 'Report export failed')..
+          '\nNo report files were changed.')
       end
     end)
     dialog.destroy()

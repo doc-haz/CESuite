@@ -6,7 +6,7 @@ code. See [usage and limitations](docs/static-lua-aobs.md).
 
 A local analysis, diagnostics and evidence-export toolkit for Cheat Engine tables and attached processes.
 
-[Latest Release](https://github.com/doc-haz/CESuite/releases/latest) · [Installation](docs/installation.md) · [Runtime Reference](docs/runtime-core.md)
+[Latest Release](https://github.com/doc-haz/CESuite/releases/latest) · [Installation](docs/installation.md) · [Runtime Reference](docs/runtime-core.md) · [Reporting](docs/reporting.md)
 
 CESuite runs locally inside Cheat Engine 7.x (Windows, 64-bit and 32-bit processes).
 
@@ -16,6 +16,8 @@ It provides:
 - offline and in-CE static Lua analysis and AOB signature extraction;
 - validation and uniqueness verification for supported literal AOB scans;
 - conservative dependency analysis for symbols, resources and registered names;
+- diagnostic assessment that explains apparent failures, the evidence behind them and a fixed review order;
+- Simple (Markdown) and Extensive (JSON) reports derived from the same evidence;
 - mapped PE module dumping with structured JSON sidecars;
 - structured JSON evidence export for AI assistance, manual review and auditing.
 
@@ -35,7 +37,26 @@ Under the **CESuite** menu in Cheat Engine's main form:
 | **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, AI-assisted analysis or external tooling. You choose where to save it; nothing is uploaded. |
 | **Static Lua AOB Analysis** | Passive lexical analysis of table Lua scripts for supported AOB patterns, displayed in the read-only viewer without live scans. |
 | **Export Static Lua Report** | Exports a full runtime report enriched with the static_lua_analysis section (JSON). |
+| **Diagnostics Summary** | Derives the diagnostic assessment from one fresh collection and shows the readable Simple Report (Markdown) in the viewer. No files are written. |
+| **Export Reports** | Writes `<base>_Simple.md` and `<base>_Extensive.json` from the same collection. The extensive report contains runtime evidence, static Lua evidence and the structured assessment. Existing files need explicit overwrite confirmation. |
 | **Export Module Dump** | A loaded PE module in mapped-image layout, plus JSON metadata, progress, cancellation and backup-preserving overwrite confirmation. |
+
+## Reports and repair guidance
+
+CESuite produces two reports from one evidence model:
+
+- **Simple Report** (Markdown): what CESuite analyzed, what looks OK, what presents
+  problems, the evidence and confidence behind each problem, possible causes, what
+  to review next, and a fixed review order. Written for people and AI tooling; it
+  never recommends an automatic repair.
+- **Extensive Report** (JSON): the complete runtime report, static Lua evidence and
+  the same `assessment` object, with provenance, confidence, limitations and
+  suggested next steps.
+
+The assessment is derived only from evidence already collected. Signatures with zero
+matches, multiple matches, unusable scans and unresolved source-only candidates are
+reported with their limits, and static Lua candidates are never promoted to runtime
+observations. See [Reporting and repair guidance](docs/reporting.md).
 
 ## Installation
 
@@ -45,7 +66,7 @@ Under the **CESuite** menu in Cheat Engine's main form:
 2. In the Cheat Engine menu, select **Settings**.
 3. In the left tree, select **General Settings**.
 4. Look for the **Cheat Engine Plugins / Autorun** directory, or locate `autorun/` in your Cheat Engine installation path (for example, `C:\Program Files\Cheat Engine 7.5\autorun\`).
-5. Extract the entire `cesuite/` folder and `CESuite_Autorun.lua` from `CESuite_Autorun_v0.2.0.zip` into the `autorun/` directory:
+5. Extract the entire `cesuite/` folder and `CESuite_Autorun.lua` from `CESuite_Autorun_v0.2.1.zip` into the `autorun/` directory:
 
 ```text
 Cheat Engine/
@@ -62,9 +83,9 @@ Cheat Engine/
 
 ### Method B: Portable / per-table use
 
-1. Download `CESuite_Core_v0.2.0.CT` from the latest release.
+1. Download `CESuite_Core_v0.2.1.CT` from the latest release.
 2. Open Cheat Engine.
-3. Open `CESuite_Core_v0.2.0.CT` (**File → Open Table** or Ctrl+O).
+3. Open `CESuite_Core_v0.2.1.CT` (**File → Open Table** or Ctrl+O).
 4. The table script runs automatically and adds the **CESuite** menu to Cheat Engine.
 5. You can now open your own game table; CESuite remains active in the menu.
 
@@ -98,7 +119,7 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 ### Report Versioning and Schemas
 
 - `core_version`: `0.1.9` indicates the baseline runtime report format and schema compatibility level for downstream consumers.
-- `suite_version`: `0.2.0` records the specific CESuite toolkit version that generated the report or static analysis.
+- `suite_version`: `0.2.1` records the specific CESuite toolkit version that generated the report or static analysis.
 - Dedicated schemas available under `schemas/`:
   - `schemas/runtime-report.schema.json`: Runtime observation report contract.
   - `schemas/static-lua-report.schema.json`: Standalone static Lua analysis report contract.
@@ -130,14 +151,15 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 
 Automated regression test results:
 
-- **237 passing checks**
+- **284 passing checks**
 - **0 skips**
 - **0 failures**
 
-These cover Lua runtime tests, module dump behavior, distribution checks, parser parity, static Lua parity, static Lua standalone schema validation and Python/schema contracts.
+These cover Lua runtime tests, diagnostic assessment, module dump behavior, distribution checks, parser parity, static Lua parity, static Lua and assessment schema validation, and Python/schema contracts.
 
 Recorded live validation includes:
 
+- v0.2.1 in Cheat Engine 7.72 64-bit on Windows 11: cold start, About `0.2.1`, 13 commands, `Diagnostics Summary`, `Export Reports`, overwrite confirm/cancel, detached analysis, a limited attached self-process smoke test and extensive-report schema validation ([details](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.2.1.md)); its target bytes predate the paired-export correction;
 - clean autorun installation and cold restart;
 - portable/singleton behavior;
 - Analyze after portable loading;
@@ -156,18 +178,22 @@ Download assets and published SHA-256 values from the [current release page](htt
 
 Still pending as nonblocking follow-up work:
 
+- targeted live re-smoke of `Export Reports` on the corrected v0.2.1 bytes (success, overwrite, cancellation, busy recovery);
 - real homonymous-module `MODULE-SNAPSHOT-INCOMPLETE` validation;
 - live R-1 check;
 - private historical replay validation;
 - D-5 / D-6 and O-1–O-4 cleanup items targeted for later development.
 
-See [P0 closure and automated evidence](https://github.com/doc-haz/CESuite/blob/main/docs/p0-closure.md), [exact v0.1.9 live observations and limits](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.1.9.md) and [v0.2.0 live validation evidence](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.2.0.md).
+See [P0 closure and automated evidence](https://github.com/doc-haz/CESuite/blob/main/docs/p0-closure.md), [exact v0.1.9 live observations and limits](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.1.9.md), [v0.2.0 live validation evidence](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.2.0.md) and [v0.2.1 live validation evidence](https://github.com/doc-haz/CESuite/blob/main/docs/validation/live-0.2.1.md).
 
 ## Credits
 
-CESuite incorporates research, reverse engineering findings and implementation work by:
+CESuite is designed, implemented, tested and maintained by:
 
-- **doc_haz** — architecture, reverse engineering, core runtime implementation and testing
-- **dokkoriax** — initial prototypes, schema definitions and analysis pipeline design
+- **doc-haz** (formerly **dokkoriax**) — architecture, reverse engineering, initial prototypes, schema and analysis pipeline design, core runtime implementation, testing and maintenance.
+
+Earlier project history or commits may reference the previous handle `dokkoriax`.
+
+Development has used AI-assisted engineering for implementation, review, testing and documentation. Final technical and release decisions remain with the project maintainer.
 
 Released under the [Apache License, Version 2.0](LICENSE).

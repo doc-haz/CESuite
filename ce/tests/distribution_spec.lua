@@ -34,7 +34,7 @@ test('autorun then CT then autorun preserves instance, report and one menu',func
   local core=assert(dofile(autorun));eq(core.status,'ready');eq(core.distribution,'autorun')
   core.last_report={sentinel=true}
   eq(dofile(portable),core);eq(dofile(autorun),core);eq(core.last_report.sentinel,true)
-  eq(menus.Count,1);eq(created,12)
+  eq(menus.Count,1);eq(created,14)
   eq(core.install(),core);eq(menus.Count,1)
 end)
 test('CT then autorun preserves portable instance',function()
@@ -102,6 +102,75 @@ test('real static lua analyze and exportEnriched run without busy guard conflict
   end
 end)
 
+test('diagnostics summary shows the simple report in the viewer',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    getOpenedProcessID=function() return 0 end
+    getAddressList=function() return {Count=0,getMemoryRecord=function() return nil end} end
+    createForm=function() return {show=function() end,destroy=function() end} end
+    createMemo=function() return {} end
+    local core=assert(dofile(path))
+    eq(menus[0].children[12].Caption,'Diagnostics Summary')
+    menus[0].children[12].OnClick()
+    assert(core.memo and core.memo.Text and core.memo.Text:find('# CESuite Simple Report',1,true),
+      'viewer must show the simple report')
+    eq(core.state.busy,false);eq(#messages,0)
+  end
+end)
+
+test('export reports writes both report files from the real core',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    getOpenedProcessID=function() return 0 end
+    getAddressList=function() return {Count=0,getMemoryRecord=function() return nil end} end
+    local core=assert(dofile(path))
+    local base=root..'/menu_reports_'..core.distribution
+    os.remove(base..'_Simple.md');os.remove(base..'_Extensive.json')
+    createSaveDialog=function()
+      local dialog={destroy=function() end}
+      dialog.execute=function() dialog.FileName=base;return true end
+      return dialog
+    end
+    eq(menus[0].children[13].Caption,'Export Reports')
+    menus[0].children[13].OnClick()
+    local f=assert(io.open(base..'_Simple.md','rb'))
+    local simple=f:read('*a');f:close()
+    assert(simple:find('# CESuite Simple Report',1,true),'simple report missing')
+    assert(simple:find('Suggested Repair Path',1,true),'repair path missing')
+    local g=assert(io.open(base..'_Extensive.json','rb'))
+    local extensive=g:read('*a');g:close()
+    assert(extensive:find('"assessment"',1,true),'assessment missing from extensive report')
+    assert(extensive:find('"schema_version":"0.1"',1,true),'schema version missing')
+    assert(extensive:find('"core_version":"0.1.9"',1,true),'core_version must stay 0.1.9')
+    assert(#messages>0 and messages[#messages]:find('Simple:',1,true),'expected confirmation message')
+    eq(core.state.busy,false)
+    os.remove(base..'_Simple.md');os.remove(base..'_Extensive.json')
+  end
+end)
+
+test('export reports failure and cancellation are reported without throwing',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    local core=assert(dofile(path))
+    createSaveDialog=function()
+      local dialog={destroy=function() end}
+      dialog.execute=function() dialog.FileName='chosen';return true end
+      return dialog
+    end
+    core.exportReports=function() return {status='failed',error='synthetic write failure'} end
+    menus[0].children[13].OnClick()
+    assert(#messages>0,'expected a message')
+    assert(messages[#messages]:find('synthetic write failure',1,true),'message must name the failure')
+    assert(messages[#messages]:find('No report files were changed',1,true),'message must state files were kept')
+    eq(core.state.busy,false)
+
+    core.exportReports=function() return {status='cancelled'} end
+    menus[0].children[13].OnClick()
+    assert(messages[#messages]:find('overwrite cancelled',1,true),'expected cancellation message')
+    eq(core.state.busy,false)
+  end
+end)
+
 test('summary menu refreshes a table analysis in both distributions',function()
   for _,path in ipairs({autorun,portable}) do
     reset()
@@ -118,7 +187,6 @@ test('summary menu refreshes a table analysis in both distributions',function()
     eq(shown.dependency_summary[1].status,'unverified');eq(#messages,0)
   end
 end)
-
 test('module dump menu is explicit, cancellation safe and destroys dialog',function()
   for _,path in ipairs({autorun,portable}) do
     reset()
