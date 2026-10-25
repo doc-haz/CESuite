@@ -206,13 +206,13 @@ Markdown report in the viewer, and `Export Reports` writes
 (`CESuite_Runtime_Report.json`, `CESuite_Runtime_Report_enriched.json`) are
 unchanged.
 
-## Address evidence (0.2.3)
+## Address evidence (0.3.0)
 
 `Core.inspectAddress(input, options)` collects read-only evidence for one explicit
 address and `Core.exportAddressEvidence(evidence, path)` serializes it against
 `schemas/address-evidence.schema.json`. It is never called from `collectReport()`:
 the runtime report, the assessment and the static Lua block are unchanged.
-`core_version` stays `0.1.9`; `suite_version` is `0.2.3`. Accepted input is hex,
+`core_version` stays `0.1.9`; `suite_version` is `0.3.0`. Accepted input is hex,
 `module+RVA` or a numeric Memory Viewer selection; CE expressions are not evaluated.
 Bounds are declared in the evidence (`1` address, `64` bytes, no timers, no
 breakpoints, no writes). Details: [address-evidence.md](address-evidence.md).

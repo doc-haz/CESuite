@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.3.0 - Dynamic Table Analysis and Validation Coverage
+
+Release candidate. Adds dynamic Lua/table analysis, provenance for table-driven
+pattern candidates, an explicit collection/discovery/validation coverage model,
+coverage-aware reporting, and a reproducible regression corpus.
+
+- Script-95 fixture and live table: 47 entries, 52 specs, 31 candidates, 0 runtime validated.
+- Runtime AOB results are the only source of validation; static resolution is not validation.
+- Limits remain fail-closed and percentages stay null when the universe is unknown.
+- 476 consolidated checks, 0 failures, 0 skips.
+- Not published; no commit, tag or release.
+
+## 0.3.0-dev - Reporting & UI Integration (030E)
+
+- **Coverage Summary**: Diagnostics Summary and Simple Report extend the assessment with an explicit, compact `Coverage Summary` block detailing Collection, Discovery, and Validation dimensions without conflating static discovery with runtime validation.
+- **Dynamic Analysis & Provenance presentation**: Simple Report surfaces top discovered candidates, derivation provenance (helper source and line), conditional branches (resolution unknown), top unresolved dependencies, provenance edge counts, and discovered providers/consumers.
+- **Controlled Terminology**: eliminates speculative language (`working`, `broken`, `fixed`); uses strict status taxonomy (`candidate`, `validated (unique)`, `ambiguous`, `no match`, `error`, `unavailable`, `unresolved`, `not applicable`).
+- **Bounded Presentations**: candidate and unresolved listings bounded to top 10 with explicit overflow indicators; limitations clearly stated when thresholds (`TABLE_LIMIT`, `PARSE_LIMIT`, etc.) are reached.
+- **Extensive Report Parity**: runtime JSON report embeds `dynamic_analysis` alongside `coverage`; schema updated and validated with Draft 2020-12.
+- **Tests & Verification**: 476 consolidated passing checks across all suites (Python contracts, analyzer tests, Lua specs, reporting UX specs, and parity checkers), 0 failures, 0 skips.
+
+## 0.3.0-dev - Dynamic Table Analysis (unreleased)
+
+- **Static dataflow core (030B)**: new `ce/modules/dynamic.lua` resolves local scalar/table declarations, ordered nested rows, member/index references and lexical scopes without executing table Lua.
+- **Wrapper contracts**: declarative contracts follow `Register.onEnable` table sets through `Register.multiCustomScan` and record `constructs` provenance for the generated `aobScanRegion` AA text.
+- **Helper resolution**: captured helper files provide `UE.Sig.FName`, `UE.Sig.GUObjectArray` and `UE.Sig.GEnigne[2]` values; `findTableFile`/`_G.Name = include(...)` loader bindings become `includes`/`provides` edges.
+- **Multi-provenance graph**: dependencies carry multiple edges (`passes_to`, `calls`, `constructs`, `provides`, `requires`, `derives_from`, ...) with `lua_local`/`lua_literal`/`lua_dynamic`/`wrapper`/`external_helper` provenance.
+- **Pattern candidates**: `literal_pattern`, `derived_pattern`, `conditional_pattern` and `symbol_only`; duplicate instances are preserved; every candidate keeps `runtime_validated=false`.
+- **script-95 acceptance fixture**: 47 entries, 52 specs, 28 literal (27 unique), 3 derived, 1 conditional, 21 symbol_only (20 pure), 30 unique symbols, 31 candidates, 0 runtime validated.
+- **Local scope fix**: locals declared in an earlier Lua block of the same AA script are no longer reported as globals in later blocks.
+- **Static report**: optional `dynamic_analysis` block; runtime report, operation telemetry and Address Evidence are unchanged.
+- **030B1 corrective pass**: conditional candidates now expose a public JSON-safe `condition` (`conditional_expression`, text, dependencies, resolution=unknown, fallback) instead of an internal AST; table/parse/edge/candidate limits propagate to `status=limit_reached`; exact duplicate edges are de-duplicated by relation/from/to/script/line/provenance; conservative `sharedLocals` remains documented.
+- **030C coverage model**: optional `coverage` block with independent `collection`, `discovery` and `validation` dimensions, explicit denominators, `universe_known`, nullable percentages and fail-closed limits. `source_complete` remains collection-only. Runtime AOB results map only to runtime validation counts.
+- No coverage model, UI, runtime tracing or release artifacts in this phase.
+
+## 0.3.0-dev - Regression Corpus (030D)
+
+- Added `ce/tests/fixtures/corpus/` with a manifest and fixtures for dynamic tables, wrappers, real callbacks, data-table non-callbacks, helpers, loaders, constructed AA, provenance, duplicate patterns, scope, limits, coverage and runtime replay.
+- Added explicit callback provenance for `registerCallback`-style APIs, without name-based inference; `DhaosCollider` remains a local data table.
+- Added `docs/regression-corpus.md` (fixture contract, clean-room guidance, static/runtime separation).
+- Corpus manifest validation checks unique ids, categories, files, invariants and `runtime_required`.
+- No parser/coverage semantic change beyond the callback fixture; runtime scanning is not modified.
+
 ## 0.2.3 - Performance & Operation Diagnostics
 
 - **Separate Operation Metadata**: runtime and static Lua reports may carry an optional `operation` block with `status` (`complete`, `partial`, `cancelled`, `failed`, `unavailable`), `source_complete`, `partial`, `cancelled`, structured `warnings` and metrics. Evidence statuses are unchanged and remain independent.

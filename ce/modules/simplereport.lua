@@ -3,7 +3,20 @@
 local U=require('util')
 local M={}
 
-local LIMITS={problem=50,advisory=12,not_assessed=10,healthy=20}
+local LIMITS={problem=50,advisory=12,not_assessed=10,healthy=20,candidate=10,unresolved=10}
+
+local STATUS_LABELS = {
+  ['complete'] = 'complete',
+  ['partial'] = 'partial',
+  ['unavailable'] = 'unavailable',
+  ['unknown'] = 'unknown',
+  ['not_applicable'] = 'not applicable',
+  ['limit_reached'] = 'limit reached'
+}
+
+local function statusLabel(s)
+  return STATUS_LABELS[s] or clean(s or 'unknown', 50)
+end
 
 local function clean(value,limit)
   if type(value)=='number' then return tostring(value) end
@@ -92,6 +105,254 @@ local function renderDiagnostic(lines,d,index)
   end
 end
 
+local function renderCoverage(lines, cov, report)
+  if not cov or type(cov) ~= 'table' then return end
+
+  lines[#lines+1] = '## Coverage Summary'
+  lines[#lines+1] = ''
+
+  -- 1. Collection
+  local coll = cov.collection or {}
+  local collStatus = statusLabel(coll.status)
+  local collUnits = string.format('%d / %d', coll.units_processed or 0, coll.units_discovered or 0)
+  local collPct = (type(coll.percentage) == 'number') and string.format(' (%.1f%%)', coll.percentage) or ''
+  lines[#lines+1] = '### Collection'
+  lines[#lines+1] = '- Status: ' .. collStatus .. collPct
+  lines[#lines+1] = '- Processed: ' .. collUnits
+  if coll.status == 'limit_reached' then
+    lines[#lines+1] = '- Warning: Analysis limit reached; collection may be incomplete.'
+  end
+  lines[#lines+1] = ''
+
+  -- 2. Discovery
+  local disc = cov.discovery or {}
+  local discStatus = statusLabel(disc.status)
+  local discPct = (type(disc.percentage) == 'number') and string.format(' (%.1f%%)', disc.percentage) or ''
+  local discCand = disc.candidates or 0
+  local discEnt = disc.entities_discovered or 0
+  lines[#lines+1] = '### Discovery'
+  lines[#lines+1] = '- Status: ' .. discStatus .. discPct
+  lines[#lines+1] = string.format('- Candidates: %d from %d entities (%d linked)',
+    discCand, discEnt, disc.linked or 0)
+  if disc.patterns_discovered and disc.patterns_discovered > 0 then
+    lines[#lines+1] = string.format('- Patterns: %d literal, %d derived, %d conditional, %d symbol-only',
+      disc.patterns_literal or 0, disc.patterns_derived or 0,
+      disc.patterns_conditional or 0, disc.patterns_symbol_only or 0)
+  end
+  if disc.universe_known == false then
+    lines[#lines+1] = '- Note: Discovery universe is not fully known; some candidate sources remain unresolved.'
+  end
+  lines[#lines+1] = ''
+
+  -- 3. Validation
+  local val = cov.validation or {}
+  local valStatus = statusLabel(val.status)
+  local valPct = (type(val.percentage) == 'number') and string.format(' (%.1f%%)', val.percentage) or ''
+  lines[#lines+1] = '### Validation'
+  lines[#lines+1] = '- Status: ' .. valStatus .. valPct
+  lines[#lines+1] = string.format('- Attempted: %d of %d candidate(s)', val.runtime_attempted or 0, val.candidates or 0)
+  lines[#lines+1] = string.format('- Validated: %d', val.runtime_validated or 0)
+
+  local isAttached = report and report.target and report.target.attached
+  if not isAttached then
+    lines[#lines+1] = '- Note: Static source analysis completed; runtime validation was unavailable because no live target was attached.'
+  elseif (val.candidates or 0) == 0 then
+    lines[#lines+1] = '- Note: No signature candidates discovered; runtime validation is not applicable.'
+  end
+  lines[#lines+1] = ''
+end
+
+local function renderDynamicAnalysis(lines, dyn, report)
+  if not dyn or type(dyn) ~= 'table' then return end
+
+  local aobBySymbol = {}
+  if report and report.aobs then
+    for _, a in ipairs(report.aobs) do
+      if a.symbol then aobBySymbol[a.symbol] = a end
+    end
+  end
+  local isAttached = report and report.target and report.target.attached
+
+  local patterns = dyn.patterns or {}
+  local unresolved = dyn.unresolved or {}
+  local edges = dyn.edges or {}
+  local providers = dyn.providers or {}
+
+  if #patterns == 0 and #unresolved == 0 and #edges == 0 and #providers == 0 then
+    return
+  end
+
+  lines[#lines+1] = '## Dynamic Analysis & Provenance'
+  lines[#lines+1] = ''
+
+  local candidates = {}
+  for _, p in ipairs(patterns) do
+    if p.status == 'candidate' then candidates[#candidates+1] = p end
+  end
+  local displayPatterns = (#candidates > 0) and candidates or patterns
+
+  if #displayPatterns > 0 then
+    lines[#lines+1] = '### Discovered Candidates'
+    local count = #displayPatterns
+    if count > LIMITS.candidate then
+      lines[#lines+1] = string.format('Showing top %d of %d candidate(s); full details in extensive report.', LIMITS.candidate, count)
+    else
+      lines[#lines+1] = string.format('%d candidate(s) discovered in source:', count)
+    end
+    lines[#lines+1] = ''
+
+    for i = 1, math.min(count, LIMITS.candidate) do
+      local p = displayPatterns[i]
+      local name = clean(p.symbol or p.id or ('candidate-' .. i), 80)
+      local loc = clean((p.source_script or 'source') .. ':' .. tostring(p.source_line or '?'), 60)
+      lines[#lines+1] = string.format('#### Candidate: %s', name)
+      lines[#lines+1] = ''
+      lines[#lines+1] = '- Kind: ' .. clean(p.kind or 'unknown', 50)
+      lines[#lines+1] = '- Source: ' .. loc
+      if p.consumer then lines[#lines+1] = '- Consumer: ' .. clean(p.consumer, 100) end
+      lines[#lines+1] = '- Status: ' .. clean(p.status or 'candidate', 50)
+
+      local valState = 'not attempted'
+      if not isAttached then
+        valState = 'unavailable (target not attached)'
+      elseif p.symbol and aobBySymbol[p.symbol] then
+        local a = aobBySymbol[p.symbol]
+        if a.uniqueness == 'unique' then
+          valState = 'validated (unique)'
+        elseif a.uniqueness == 'ambiguous' then
+          valState = 'ambiguous'
+        elseif a.uniqueness == 'no_match' then
+          valState = 'no match'
+        elseif a.status == 'error' then
+          valState = 'error'
+        elseif a.status == 'invalidated' then
+          valState = 'unavailable'
+        else
+          valState = clean(a.uniqueness or a.status or 'not attempted', 50)
+        end
+      end
+      lines[#lines+1] = '- Runtime validation: ' .. valState
+
+      if p.kind == 'derived_pattern' then
+        local helper = p.source_helper or 'helper'
+        local hloc = p.helper_file and (p.helper_file .. ':' .. tostring(p.helper_line or '?')) or 'external'
+        lines[#lines+1] = string.format('- Derived from helper: %s (%s)', clean(helper, 80), clean(hloc, 80))
+        lines[#lines+1] = '- Derivation status: ' .. (p.status == 'unresolved' and 'unresolved' or 'resolved from helper')
+      end
+
+      if p.kind == 'conditional_pattern' or p.condition then
+        local cond = p.condition or {}
+        lines[#lines+1] = '- Condition resolution: ' .. clean(cond.resolution or 'unknown', 50)
+        if cond.dependencies and #cond.dependencies > 0 then
+          lines[#lines+1] = '- Condition dependency: ' .. clean(table.concat(cond.dependencies, ', '), 100)
+        end
+        if cond.fallback then
+          lines[#lines+1] = '- Condition fallback: ' .. clean(cond.fallback, 80)
+        end
+      end
+
+      if p.provenance and #p.provenance > 0 then
+        lines[#lines+1] = '- Provenance:'
+        for _, pr in ipairs(p.provenance) do
+          local pdesc = pr.kind or 'unknown'
+          if pr.detail then pdesc = pdesc .. ' (' .. clean(pr.detail, 60) .. ')' end
+          lines[#lines+1] = '  - ' .. pdesc
+        end
+      end
+
+      lines[#lines+1] = ''
+    end
+
+    if count > LIMITS.candidate then
+      lines[#lines+1] = string.format('- ... and %d more candidate(s); see the extensive report.', count - LIMITS.candidate)
+      lines[#lines+1] = ''
+    end
+  end
+
+  if #unresolved > 0 then
+    lines[#lines+1] = '### Unresolved Dependencies'
+    lines[#lines+1] = ''
+    for i = 1, math.min(#unresolved, LIMITS.unresolved) do
+      local u = unresolved[i]
+      local name = clean(u.name or u.id or 'unresolved', 80)
+      local loc = clean((u.source_script or 'source') .. ':' .. tostring(u.source_line or '?'), 60)
+      local reason = u.reason and (' — ' .. clean(u.reason, 100)) or ''
+      lines[#lines+1] = string.format('- %s (%s%s)', name, loc, reason)
+    end
+    if #unresolved > LIMITS.unresolved then
+      lines[#lines+1] = string.format('- ... and %d more unresolved dependenc(ies); see the extensive report.', #unresolved - LIMITS.unresolved)
+    end
+    lines[#lines+1] = ''
+  end
+
+  if #edges > 0 then
+    lines[#lines+1] = '### Provenance Relationships'
+    lines[#lines+1] = ''
+    local relCounts = {}
+    local relOrder = {'defines', 'passes_to', 'calls', 'constructs', 'provides', 'requires', 'consumes', 'derives_from', 'registers'}
+    for _, e in ipairs(edges) do
+      local rel = e.relation or 'other'
+      relCounts[rel] = (relCounts[rel] or 0) + 1
+    end
+    for _, rel in ipairs(relOrder) do
+      if relCounts[rel] then
+        lines[#lines+1] = string.format('- %s: %d', rel, relCounts[rel])
+      end
+    end
+    for rel, cnt in pairs(relCounts) do
+      local found = false
+      for _, r in ipairs(relOrder) do if r == rel then found = true; break end end
+      if not found then
+        lines[#lines+1] = string.format('- %s: %d', rel, cnt)
+      end
+    end
+    lines[#lines+1] = ''
+  end
+
+  lines[#lines+1] = '### Providers & Consumers'
+  if #providers > 0 then
+    lines[#lines+1] = '- Providers: ' .. clean(table.concat(providers, ', '), 200)
+  else
+    lines[#lines+1] = '- Providers: unknown'
+  end
+
+  local consumers = {}
+  local cseen = {}
+  for _, p in ipairs(patterns) do
+    if p.consumer and not cseen[p.consumer] then
+      cseen[p.consumer] = true
+      consumers[#consumers+1] = p.consumer
+    end
+  end
+  if #consumers > 0 then
+    lines[#lines+1] = '- Consumers: ' .. clean(table.concat(consumers, ', '), 200)
+  else
+    lines[#lines+1] = '- Consumers: unknown'
+  end
+  lines[#lines+1] = ''
+
+  if dyn.status == 'limit_reached' or (dyn.limits and (dyn.limits.table_limit_hit or dyn.limits.candidate_limit_hit or dyn.limits.edge_limit_hit or dyn.limits.token_limit_hit)) then
+    lines[#lines+1] = '### Analysis Limitations'
+    lines[#lines+1] = ''
+    lines[#lines+1] = 'Analysis limit reached. Results may be incomplete.'
+    if dyn.limits then
+      if dyn.limits.table_limit_hit then
+        lines[#lines+1] = '- Table entries exceeded configured maximum: TABLE_LIMIT reached.'
+      end
+      if dyn.limits.candidate_limit_hit then
+        lines[#lines+1] = '- Candidates exceeded configured maximum: CANDIDATE_LIMIT reached.'
+      end
+      if dyn.limits.edge_limit_hit then
+        lines[#lines+1] = '- Provenance edges exceeded configured maximum: EDGE_LIMIT reached.'
+      end
+      if dyn.limits.token_limit_hit then
+        lines[#lines+1] = '- Source tokens exceeded configured maximum: PARSE_LIMIT reached.'
+      end
+    end
+    lines[#lines+1] = ''
+  end
+end
+
 function M.render(assessment,report)
   assert(type(assessment)=='table','simple report requires an assessment')
   report=report or {}
@@ -123,6 +384,16 @@ function M.render(assessment,report)
   lines[#lines+1]=''
   lines[#lines+1]='**'..clean(assessment.headline,300)..'**'
   lines[#lines+1]=''
+
+  local cov=(report and report.coverage) or (report and report.static_lua_analysis and report.static_lua_analysis.coverage)
+  if cov then
+    renderCoverage(lines,cov,report)
+  end
+
+  local dyn=(report and report.dynamic_analysis) or (report and report.static_lua_analysis and report.static_lua_analysis.dynamic_analysis)
+  if dyn then
+    renderDynamicAnalysis(lines,dyn,report)
+  end
 
   local healthy={}
   for _,d in ipairs(assessment.diagnostics) do

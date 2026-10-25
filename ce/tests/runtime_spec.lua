@@ -123,6 +123,43 @@ test('operation telemetry is separated and never changes evidence',function()
   eq(E.encode(instrumented),E.encode(degraded))
 end)
 
+test('locals declared in an earlier block are not reported as globals',function()
+  local r={dependencies=U.array(),scripts=U.array(),diagnostics=U.array()}
+  local script={id='s-locals',text='{$lua}\nlocal shared_name=1\n{$asm}\n[ENABLE]\n{$lua}\nprint(shared_name)\n{$asm}\n[DISABLE]',
+    record_key=U.null,origin='MemoryRecord.Script',language='AA'}
+  P.inspect(script,r)
+  for _,dep in ipairs(r.dependencies) do
+    assert(dep.name~='shared_name','local must not be reported as a global')
+  end
+end)
+
+test('sharedLocals conservatively hides a later same-name global',function()
+  -- Documented 030B limitation: a local from an earlier block wins for the whole
+  -- record; a later global with the same name is under-reported, never invented.
+  local r={dependencies=U.array(),scripts=U.array(),diagnostics=U.array()}
+  local script={id='s-shared',text='{$lua}\nlocal hidden=1\n{$asm}\n[ENABLE]\n{$lua}\nhidden=2\n{$asm}\n[DISABLE]',
+    record_key=U.null,origin='MemoryRecord.Script',language='AA'}
+  P.inspect(script,r)
+  for _,dep in ipairs(r.dependencies) do
+    assert(dep.name~='hidden','conservative scope suppresses the later global')
+  end
+end)
+
+test('runtime report embeds independent coverage',function()
+  local api={getOpenedProcessID=function() return 0 end,vtAutoAssembler=11,
+    getAddressList=function() return {Count=0,LoadedTableVersion=45} end}
+  local core=assert(loadfile('ce/CESuite_Core.lua','t',
+    setmetatable({api=api,require=require},{__index=_G})))()
+  local r=core.analyze('table')
+  assert(r.coverage,'coverage missing')
+  eq(r.coverage.collection.complete,true)
+  eq(r.coverage.discovery.candidates,0)
+  eq(r.coverage.validation.status,'not_applicable')
+  eq(r.coverage.validation.runtime_validated,0)
+  eq(r.operation.source_complete,false)
+  eq(r.coverage.validation.complete,false)
+end)
+
 local function report(source)
   local r={
     aobs=U.array(),

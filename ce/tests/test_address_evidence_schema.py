@@ -1,4 +1,4 @@
-"""Validate the v0.2.3 Address Evidence contract against the real Lua serializer.
+"""Validate the v0.3.0 Address Evidence contract against the real Lua serializer.
 
 The evidence is produced by the shipped bundle with synthetic CE mocks; the JSON
 is validated with schemas/address-evidence.schema.json. No target is touched.
@@ -76,7 +76,7 @@ getMainForm=function() return {Menu={Items={Count=0,add=function() end}}} end
 createMenuItem=function() return {add=function() end,destroy=function() end,children={}} end
 apply({})
 local Core=assert(loadfile('releases/CESuite_Core.lua','t',setmetatable({api=_G,require=require},{__index=_G})))()
-assert(Core.version=='0.2.3','unexpected version '..tostring(Core.version))
+assert(Core.version=='0.3.0','unexpected version '..tostring(Core.version))
 local function write(name,evidence)
   Core.exportAddressEvidence(evidence,'__DIR__/'..name..'.json')
 end
@@ -150,7 +150,7 @@ class AddressEvidenceContractTests(unittest.TestCase):
                      'ambiguous', 'invalidated', 'no_region'):
             self.assertIn(name, self.docs)
         self.assertEqual(self.docs['resolved']['status'], 'observed')
-        self.assertEqual(self.docs['resolved']['suite_version'], '0.2.3')
+        self.assertEqual(self.docs['resolved']['suite_version'], '0.3.0')
         self.assertEqual(self.docs['resolved']['core_version'], '0.1.9')
         self.assertEqual(self.docs['resolved']['query']['resolution_status'], 'resolved')
         self.assertEqual(self.docs['invalid']['query']['resolution_status'], 'invalid_input')

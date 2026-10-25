@@ -13,8 +13,38 @@ local LuaStatic=require('luastatic')
 local Diagnose=require('diagnose')
 local SimpleReport=require('simplereport')
 local Address=require('address')
+local Dynamic=require('dynamic')
+local Coverage=require('coverage')
 local Operations=require('operations')
-local Core={identity='CESuiteCore',version='0.2.3',schema_version='0.1',status='stopped',state=Life.new()}
+local Core={identity='CESuiteCore',version='0.3.0',schema_version='0.1',status='stopped',state=Life.new()}
+local function tableHelpers()
+  local helpers=U.array()
+  local function add(name,alias)
+    local ok,tf=pcall(api.findTableFile,name)
+    if not ok or not tf or not tf.stream then return end
+    local okText,text=pcall(api.readStringLocal,tf.stream.memory,tf.stream.size)
+    if okText and type(text)=='string' and text~='' then
+      helpers[#helpers+1]={name=name:gsub('%.lua$',''),alias=alias,text=text,file=name}
+    end
+  end
+  add('UE.lua','Obj')
+  add('Register.lua','Register')
+  return helpers
+end
+
+local function dynamicFor(report, options)
+  local sources=Dynamic.sources_from_scripts(report and report.scripts or {})
+  if #sources==0 then return nil end
+  options=options or {}
+  if not options.helpers then
+    local helpers=tableHelpers()
+    if #helpers>0 then
+      options={helpers=helpers,limits=options.limits,universe_known=options.universe_known}
+    end
+  end
+  return Dynamic.analyze(sources,options)
+end
+
 local function sourceBytes(r)
   local total=0
   for _,script in ipairs(r.scripts or {}) do
@@ -81,6 +111,11 @@ local function collectReport(mode)
   end
   Operations.finish(operation,started,'analysis')
   Operations.finalize(operation)
+  local dynamic=dynamicFor(r)
+  r.coverage=Coverage.for_runtime(r,dynamic,{})
+  if dynamic then
+    r.dynamic_analysis=dynamic
+  end
   Core.last_operation=operation
   Core.last_report=r
   return r
@@ -90,7 +125,7 @@ function Core.analyze(mode)
     return collectReport(mode)
   end)
 end
-function Core.analyzeStaticLua()
+function Core.analyzeStaticLua(options)
   return Core.state.run(function()
     local operation=Operations.new('static_lua')
     local started=Operations.begin()
@@ -144,9 +179,18 @@ function Core.analyzeStaticLua()
       diagnostics=diagnostics,
       limitations=limitations
     }
+    local dynamic=dynamicFor(r,options)
+    if dynamic then staticReport.dynamic_analysis=dynamic end
+    staticReport.coverage=Coverage.for_static(dynamic,r.scripts,{})
     Core.last_static_report=staticReport
     return staticReport
   end)
+end
+-- Explicit static Lua report export (0.3.0-dev). Analysis is read-only text.
+function Core.exportStaticLuaReport(path,options)
+  assert(type(path)=='string' and path~='','Choose a destination')
+  local report=Core.analyzeStaticLua(options)
+  return Export.write(report,path)
 end
 function Core.export(path)
   return Core.state.run(function()

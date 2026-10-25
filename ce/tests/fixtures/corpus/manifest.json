@@ -1,0 +1,701 @@
+{
+  "version": "1.0",
+  "generated_by": "CESuite 0.3.0-dev / AIR-CESUITE-030D",
+  "categories": [
+    "dynamic",
+    "provenance",
+    "coverage",
+    "callbacks",
+    "constructed-aa",
+    "loaders",
+    "runtime-replay",
+    "negative",
+    "limits",
+    "scope",
+    "duplicates"
+  ],
+  "fixtures": [
+    {
+      "id": "ffrs-script95-static",
+      "title": "FFRS script-95 static",
+      "category": "dynamic",
+      "source_kind": "static_lua",
+      "purpose": "local tables, wrapper contracts, UE.Sig helpers and provenance",
+      "origin": "FFRS live table (conceptual, minimized helpers)",
+      "files": [
+        "ce/tests/fixtures/dynamic/script95.lua",
+        "ce/tests/fixtures/dynamic/ue.lua",
+        "ce/tests/fixtures/dynamic/loader.lua"
+      ],
+      "expected_behavior": "47 entries, 52 specs, 31 candidates, 0 runtime validated",
+      "invariants": {
+        "entries": 47,
+        "specs": 52,
+        "literal": 28,
+        "literal_unique": 27,
+        "derived": 3,
+        "conditional": 1,
+        "symbol_only": 21,
+        "symbol_only_pure": 20,
+        "unique_symbols": 30,
+        "candidates": 31,
+        "runtime_validated": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": [
+        "LaunchUEInfoScanner provider"
+      ]
+    },
+    {
+      "id": "dynamic-local-table",
+      "title": "Local table and wrapper",
+      "category": "dynamic",
+      "source_kind": "static_lua",
+      "purpose": "one local table row is discovered through Register.onEnable",
+      "origin": "synthetic from 030A behavior",
+      "files": [
+        "ce/tests/fixtures/corpus/dynamic/local-table.lua"
+      ],
+      "expected_behavior": "1 candidate through passes_to",
+      "invariants": {
+        "candidates": 1,
+        "specs": 1
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "dynamic-nested-table",
+      "title": "Nested rows",
+      "category": "dynamic",
+      "source_kind": "static_lua",
+      "purpose": "ordered nested rows produce two candidates",
+      "origin": "synthetic",
+      "files": [
+        "ce/tests/fixtures/corpus/dynamic/nested-table.lua"
+      ],
+      "expected_behavior": "2 candidates preserving order",
+      "invariants": {
+        "candidates": 2,
+        "specs": 2
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "callbacks-real",
+      "title": "Real callback registration",
+      "category": "callbacks",
+      "source_kind": "static_lua",
+      "purpose": "a function passed to registerCallback gets callback provenance",
+      "origin": "synthetic contrast with DhaosCollider",
+      "files": [
+        "ce/tests/fixtures/corpus/callbacks/real-callback.lua"
+      ],
+      "expected_behavior": "callback edge present, no candidates",
+      "invariants": {
+        "callback_edges": 1,
+        "candidates": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "callbacks-data-table",
+      "title": "Data table is not a callback",
+      "category": "callbacks",
+      "source_kind": "static_lua",
+      "purpose": "DhaosCollider-like data table passed to onEnable is not callback provenance",
+      "origin": "030A finding",
+      "files": [
+        "ce/tests/fixtures/corpus/callbacks/data-table.lua"
+      ],
+      "expected_behavior": "passes_to edge, zero callback edges",
+      "invariants": {
+        "callback_edges": 0,
+        "candidates": 1
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "negative-unknown-wrapper",
+      "title": "Unknown wrapper",
+      "category": "negative",
+      "source_kind": "static_lua",
+      "purpose": "unknown wrapper invents no candidates",
+      "origin": "synthetic",
+      "files": [
+        "ce/tests/fixtures/corpus/negative/unknown-wrapper.lua"
+      ],
+      "expected_behavior": "zero candidates, universe unknown",
+      "invariants": {
+        "candidates": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "negative-missing-helper",
+      "title": "Missing helper",
+      "category": "negative",
+      "source_kind": "static_lua",
+      "purpose": "UE.Sig reference without helper stays unresolved",
+      "origin": "030A/030B",
+      "files": [
+        "ce/tests/fixtures/corpus/negative/missing-helper.lua"
+      ],
+      "expected_behavior": "derived unresolved, runtime false",
+      "invariants": {
+        "derived": 1,
+        "runtime_validated": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "loaders-include-provider",
+      "title": "Loader include provider",
+      "category": "loaders",
+      "source_kind": "static_lua",
+      "purpose": "include/findTableFile/_G binding produces providers",
+      "origin": "030A loader",
+      "files": [
+        "ce/tests/fixtures/corpus/loaders/include-provider.lua"
+      ],
+      "expected_behavior": "Register and UE providers",
+      "invariants": {
+        "providers": 2
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "loaders-dynamic-binding",
+      "title": "Dynamic binding negative",
+      "category": "loaders",
+      "source_kind": "static_lua",
+      "purpose": "dynamic _G[var]/rawset binding is not inferred",
+      "origin": "030B rule",
+      "files": [
+        "ce/tests/fixtures/corpus/loaders/dynamic-binding.lua"
+      ],
+      "expected_behavior": "no providers",
+      "invariants": {
+        "providers": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "constructed-aa-contract",
+      "title": "Constructed AA contract",
+      "category": "constructed-aa",
+      "source_kind": "static_lua",
+      "purpose": "wrapper contract records constructs provenance",
+      "origin": "030B",
+      "files": [
+        "ce/tests/fixtures/corpus/constructed-aa/contract.lua"
+      ],
+      "expected_behavior": "constructs edge, no execution",
+      "invariants": {
+        "constructs_edges": 1
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "constructed-aa-dynamic-format",
+      "title": "Dynamic format negative",
+      "category": "constructed-aa",
+      "source_kind": "static_lua",
+      "purpose": "dynamic format/args fail closed",
+      "origin": "030B rule",
+      "files": [
+        "ce/tests/fixtures/corpus/constructed-aa/dynamic-format.lua"
+      ],
+      "expected_behavior": "zero candidates",
+      "invariants": {
+        "candidates": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "provenance-multi-edge",
+      "title": "Multi provenance",
+      "category": "provenance",
+      "source_kind": "static_lua",
+      "purpose": "one symbol keeps defines/passes/constructs/provides edges",
+      "origin": "synthetic",
+      "files": [
+        "ce/tests/fixtures/corpus/provenance/multi-edge.lua"
+      ],
+      "expected_behavior": "multiple edge relations preserved",
+      "invariants": {
+        "candidates": 1
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "duplicates-func-give-item",
+      "title": "Duplicate pattern instances",
+      "category": "duplicates",
+      "source_kind": "static_lua",
+      "purpose": "same pattern twice keeps two ids",
+      "origin": "030A script-95",
+      "files": [
+        "ce/tests/fixtures/corpus/duplicates/func-give-item.lua"
+      ],
+      "expected_behavior": "2 instances, 2 ids, 1 normalized pattern",
+      "invariants": {
+        "instances": 2,
+        "unique_patterns": 1
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "scope-local-global",
+      "title": "Local/global scope",
+      "category": "scope",
+      "source_kind": "static_lua",
+      "purpose": "local and global references are classified",
+      "origin": "030B",
+      "files": [
+        "ce/tests/fixtures/corpus/scope/local-global.lua"
+      ],
+      "expected_behavior": "x local, y global",
+      "invariants": {
+        "local": 1,
+        "global": 1
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "scope-shadowing",
+      "title": "Shadowing",
+      "category": "scope",
+      "source_kind": "static_lua",
+      "purpose": "inner local shadows outer without collapsing",
+      "origin": "030B",
+      "files": [
+        "ce/tests/fixtures/corpus/scope/shadowing.lua"
+      ],
+      "expected_behavior": "both x references local",
+      "invariants": {
+        "local": 2,
+        "global": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "scope-shared-locals",
+      "title": "sharedLocals conservative",
+      "category": "scope",
+      "source_kind": "static_lua",
+      "purpose": "earlier local hides later same-name global",
+      "origin": "030B1 documented limitation",
+      "files": [
+        "ce/tests/fixtures/corpus/scope/shared-locals.lua"
+      ],
+      "expected_behavior": "hidden not reported",
+      "invariants": {
+        "hidden_globals": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "limits-table",
+      "title": "TABLE_LIMIT",
+      "category": "limits",
+      "source_kind": "static_lua",
+      "purpose": "max_entries truncation is explicit",
+      "origin": "030B1",
+      "files": [
+        "ce/tests/fixtures/corpus/limits/table-limit.lua"
+      ],
+      "expected_behavior": "limit_reached",
+      "invariants": {
+        "limit": "TABLE_LIMIT"
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "limits-candidate",
+      "title": "CANDIDATE_LIMIT",
+      "category": "limits",
+      "source_kind": "static_lua",
+      "purpose": "candidate cap is explicit",
+      "origin": "030B1",
+      "files": [
+        "ce/tests/fixtures/corpus/limits/candidate-limit.lua"
+      ],
+      "expected_behavior": "limit_reached",
+      "invariants": {
+        "limit": "CANDIDATE_LIMIT"
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "limits-edge",
+      "title": "EDGE_LIMIT",
+      "category": "limits",
+      "source_kind": "static_lua",
+      "purpose": "edge cap is explicit",
+      "origin": "030B1",
+      "files": [
+        "ce/tests/fixtures/corpus/limits/edge-limit.lua"
+      ],
+      "expected_behavior": "limit_reached",
+      "invariants": {
+        "limit": "EDGE_LIMIT"
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "limits-token",
+      "title": "PARSE_LIMIT",
+      "category": "limits",
+      "source_kind": "static_lua",
+      "purpose": "token cap is fail-closed",
+      "origin": "030B1",
+      "files": [
+        "ce/tests/fixtures/corpus/limits/token-limit.lua"
+      ],
+      "expected_behavior": "limit_reached",
+      "invariants": {
+        "limit": "PARSE_LIMIT"
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "limits-multiple",
+      "title": "Multiple limits",
+      "category": "limits",
+      "source_kind": "static_lua",
+      "purpose": "multiple limits preserved",
+      "origin": "030B1",
+      "files": [
+        "ce/tests/fixtures/corpus/limits/multiple.lua"
+      ],
+      "expected_behavior": "limit_reached",
+      "invariants": {
+        "limits": 2
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "coverage-empty",
+      "title": "Empty source coverage",
+      "category": "coverage",
+      "source_kind": "static_lua",
+      "purpose": "empty source has null percentages",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/coverage/empty.lua"
+      ],
+      "expected_behavior": "not_applicable validation",
+      "invariants": {
+        "candidates": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "coverage-zero-candidates",
+      "title": "Zero candidates",
+      "category": "coverage",
+      "source_kind": "static_lua",
+      "purpose": "zero denominator is null",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/coverage/zero-candidates.lua"
+      ],
+      "expected_behavior": "not_applicable, null percentage",
+      "invariants": {
+        "candidates": 0
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "coverage-script95",
+      "title": "Script-95 coverage",
+      "category": "coverage",
+      "source_kind": "static_lua",
+      "purpose": "collection complete, validation unavailable",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/dynamic/script95.lua"
+      ],
+      "expected_behavior": "validation unavailable",
+      "invariants": {
+        "candidates": 31
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "coverage-detached",
+      "title": "Detached static",
+      "category": "coverage",
+      "source_kind": "static_lua",
+      "purpose": "detached keeps static collection valid",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/dynamic/script95.lua"
+      ],
+      "expected_behavior": "validation unavailable",
+      "invariants": {
+        "collection_complete": true
+      },
+      "runtime_required": false,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "runtime-unique",
+      "title": "Replay unique",
+      "category": "runtime-replay",
+      "source_kind": "runtime_replay",
+      "purpose": "unique match is the only runtime validated",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/runtime-replay/unique.lua"
+      ],
+      "expected_behavior": "validated=1 unique=1",
+      "invariants": {
+        "validated": 1
+      },
+      "runtime_required": true,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "runtime-ambiguous",
+      "title": "Replay ambiguous",
+      "category": "runtime-replay",
+      "source_kind": "runtime_replay",
+      "purpose": "ambiguous is not validated",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/runtime-replay/ambiguous.lua"
+      ],
+      "expected_behavior": "validated=0 ambiguous=1",
+      "invariants": {
+        "ambiguous": 1
+      },
+      "runtime_required": true,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "runtime-no-match",
+      "title": "Replay no match",
+      "category": "runtime-replay",
+      "source_kind": "runtime_replay",
+      "purpose": "no match is not validated",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/runtime-replay/no-match.lua"
+      ],
+      "expected_behavior": "validated=0 no_match=1",
+      "invariants": {
+        "no_match": 1
+      },
+      "runtime_required": true,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "runtime-error",
+      "title": "Replay error",
+      "category": "runtime-replay",
+      "source_kind": "runtime_replay",
+      "purpose": "error attempted but not validated",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/runtime-replay/error.lua"
+      ],
+      "expected_behavior": "error=1 validated=0",
+      "invariants": {
+        "error": 1
+      },
+      "runtime_required": true,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "runtime-invalidated",
+      "title": "Replay invalidated",
+      "category": "runtime-replay",
+      "source_kind": "runtime_replay",
+      "purpose": "invalidated is runtime unavailable",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/runtime-replay/invalidated.lua"
+      ],
+      "expected_behavior": "unavailable=1",
+      "invariants": {
+        "unavailable": 1
+      },
+      "runtime_required": true,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "runtime-unavailable",
+      "title": "Replay unavailable",
+      "category": "runtime-replay",
+      "source_kind": "runtime_replay",
+      "purpose": "unavailable is not attempted",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/runtime-replay/unavailable.lua"
+      ],
+      "expected_behavior": "unavailable=1 attempted=0",
+      "invariants": {
+        "unavailable": 1
+      },
+      "runtime_required": true,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "runtime-unsupported",
+      "title": "Replay unsupported",
+      "category": "runtime-replay",
+      "source_kind": "runtime_replay",
+      "purpose": "unsupported is not validated",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/runtime-replay/unsupported.lua"
+      ],
+      "expected_behavior": "unsupported=1",
+      "invariants": {
+        "unsupported": 1
+      },
+      "runtime_required": true,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    },
+    {
+      "id": "runtime-unresolved",
+      "title": "Replay unresolved",
+      "category": "runtime-replay",
+      "source_kind": "runtime_replay",
+      "purpose": "unresolved is not validated",
+      "origin": "030C",
+      "files": [
+        "ce/tests/fixtures/corpus/runtime-replay/unresolved.lua"
+      ],
+      "expected_behavior": "unresolved=1",
+      "invariants": {
+        "unresolved": 1
+      },
+      "runtime_required": true,
+      "dependencies": [
+        "dynamic"
+      ],
+      "known_unknowns": []
+    }
+  ]
+}

@@ -56,7 +56,7 @@ In addition to offline Python analysis, CESuite 0.2.0 adds two in-CE menu comman
 
 Reports distinguish between engine compatibility and tool suite release:
 - `core_version`: `0.1.9` indicates the baseline runtime report format and schema contract compatibility level. Existing automated consumers relying on `0.1.9` runtime semantics continue to parse reports without breaking changes.
-- `suite_version`: `0.2.3` records the actual CESuite release that executed the analysis and generated the static/enriched report. When available, it is exposed in the `static_lua_analysis` section and in the in-CE viewer.
+- `suite_version`: `0.3.0` records the actual CESuite release that executed the analysis and generated the static/enriched report. When available, it is exposed in the `static_lua_analysis` section and in the in-CE viewer.
 - A dedicated JSON schema for standalone static Lua reports is available at [`schemas/static-lua-report.schema.json`](../schemas/static-lua-report.schema.json).
 
 ## Synthetic Test Fixture
@@ -65,3 +65,16 @@ Reports distinguish between engine compatibility and tool suite release:
 patterns) modeling multi-custom-scan wrappers, duplicate patterns, and unknown arguments. It is 100% synthetic, contains no proprietary binaries or game-specific content, and was created solely for test suite validation. Tests also cover
 unknown calls, concatenation/indexing, comments, malformed payloads, resource
 limits and JSON output. No live matching or uniqueness test is implied.
+
+## Dynamic table analysis (0.3.0)
+
+The standalone static report may also contain an optional `dynamic_analysis`
+block produced by `ce/modules/dynamic.lua`. It adds local-table resolution,
+wrapper contracts (`Register.onEnable`/`Register.multiCustomScan`), helper
+`UE.Sig.*` resolution, pattern candidates and multi-provenance edges. It is
+text-only and does not execute table Lua. See
+[dynamic-table-analysis.md](dynamic-table-analysis.md).
+
+Static reports include an optional `coverage` block whose validation layer is
+`unavailable`/`not_applicable`; static text never counts as runtime validation.
+See [coverage-model.md](coverage-model.md).

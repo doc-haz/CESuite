@@ -6,7 +6,7 @@ code. See [usage and limitations](docs/static-lua-aobs.md).
 
 A local analysis, diagnostics and evidence-export toolkit for Cheat Engine tables and attached processes.
 
-[Latest Release](https://github.com/doc-haz/CESuite/releases/latest) · [Installation](docs/installation.md) · [Runtime Reference](docs/runtime-core.md) · [Reporting](docs/reporting.md) · [Address Evidence](docs/address-evidence.md)
+[Latest Release](https://github.com/doc-haz/CESuite/releases/latest) · [Installation](docs/installation.md) · [Runtime Reference](docs/runtime-core.md) · [Reporting](docs/reporting.md) · [Reporting & UI](docs/reporting-ui.md) · [Address Evidence](docs/address-evidence.md)
 
 CESuite runs locally inside Cheat Engine 7.x (Windows, 64-bit and 32-bit processes).
 
@@ -19,6 +19,10 @@ It provides:
 - diagnostic assessment that explains apparent failures, the evidence behind them and a fixed review order;
 - read-only Address Evidence Inspector for one explicit address (hex or module+RVA), with stale-PID/detached-target detection;
 - optional operation telemetry (timings, source completeness and structured warnings) kept separate from evidence diagnostics;
+- static dynamic-table analysis (0.3.0): local tables, wrapper contracts and multi-provenance pattern candidates;
+- explicit coverage model (0.3.0): collection, discovery and validation are separate dimensions;
+- reproducible regression corpus (0.3.0): FFRS script-95, callbacks, loaders, limits, coverage and runtime replay fixtures;
+- reporting and UI integration (0.3.0): Coverage Summary, Discovered Candidates, and Provenance presentation without confusing discovery with validation;
 - native Cheat Engine menu icons (validated mapping for CE 7.72, never modifying host resources);
 - Simple (Markdown) and Extensive (JSON) reports derived from the same evidence;
 - mapped PE module dumping with structured JSON sidecars;
@@ -78,7 +82,7 @@ observations. See [Reporting and repair guidance](docs/reporting.md).
 2. In the Cheat Engine menu, select **Settings**.
 3. In the left tree, select **General Settings**.
 4. Look for the **Cheat Engine Plugins / Autorun** directory, or locate `autorun/` in your Cheat Engine installation path (for example, `C:\Program Files\Cheat Engine 7.5\autorun\`).
-5. Extract the entire `cesuite/` folder and `CESuite_Autorun.lua` from `CESuite_Autorun_v0.2.3.zip` into the `autorun/` directory:
+5. Extract the entire `cesuite/` folder and `CESuite_Autorun.lua` from `CESuite_Autorun_v0.3.0.zip` into the `autorun/` directory:
 
 ```text
 Cheat Engine/
@@ -95,9 +99,9 @@ Cheat Engine/
 
 ### Method B: Portable / per-table use
 
-1. Download `CESuite_Core_v0.2.3.CT` from the latest release.
+1. Download `CESuite_Core_v0.3.0.CT` from the latest release.
 2. Open Cheat Engine.
-3. Open `CESuite_Core_v0.2.3.CT` (**File → Open Table** or Ctrl+O).
+3. Open `CESuite_Core_v0.3.0.CT` (**File → Open Table** or Ctrl+O).
 4. The table script runs automatically and adds the **CESuite** menu to Cheat Engine.
 5. You can now open your own game table; CESuite remains active in the menu.
 
@@ -131,7 +135,7 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 ### Report Versioning and Schemas
 
 - `core_version`: `0.1.9` indicates the baseline runtime report format and schema compatibility level for downstream consumers.
-- `suite_version`: `0.2.3` records the specific CESuite toolkit version that generated the report or static analysis.
+- `suite_version`: `0.3.0` records the specific CESuite toolkit version that generated the report or static analysis.
 - Dedicated schemas available under `schemas/`:
   - `schemas/runtime-report.schema.json`: Runtime observation report contract.
   - `schemas/static-lua-report.schema.json`: Standalone static Lua analysis report contract.
@@ -163,7 +167,7 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 
 Automated regression test results:
 
-- **371 passing checks**
+- **476 passing checks**
 - **0 skips**
 - **0 failures**
 

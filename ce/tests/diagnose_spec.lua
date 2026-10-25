@@ -444,9 +444,9 @@ test('Core.simpleText renders the same assessment that the extensive report embe
   os.remove(result.simple);os.remove(result.extensive)
 end)
 
-test('Core.version is 0.2.3 and assessment schema version is stable',function()
+test('Core.version is 0.3.0 and assessment schema version is stable',function()
   local core=loadCore(mockApi({}))
-  eq(core.version,'0.2.3')
+  eq(core.version,'0.3.0')
   local a=core.buildAssessment({target={attached=false},aobs=U.array(),scripts=U.array(),
     dependencies=U.array(),diagnostics=U.array()})
   eq(a.schema_version,'0.1')
@@ -547,6 +547,26 @@ test('stale target with planned AOBs is never complete or source-complete',funct
   assert(not (r.operation.source_complete and
     r.operation.metrics.items_processed<r.operation.metrics.items_total),
     '0/7 items cannot coexist with source_complete=true')
+end)
+
+test('Core.exportStaticLuaReport serializes script-95 safely',function()
+  local f=assert(io.open('ce/tests/fixtures/dynamic/script95.lua','rb'))
+  local text=f:read('*a');f:close()
+  local api=mockApi({})
+  api.getAddressList=function()
+    return {Count=1,LoadedTableVersion=45,getMemoryRecord=function()
+      return {ID=1,Description='script95',Type=11,OffsetCount=0,Script=text}
+    end}
+  end
+  local core=loadCore(api)
+  local path=os.tmpname()..'.json'
+  local written=core.exportStaticLuaReport(path)
+  eq(written,path)
+  local out=readFile(path)
+  assert(out:find('"dynamic_analysis"',1,true),'dynamic_analysis missing')
+  assert(out:find('"conditional_expression"',1,true),'condition missing')
+  assert(out:find('LaunchUEInfoScanner',1,true),'condition dependency missing')
+  os.remove(path)
 end)
 
 test('simple write failure leaves no report and releases busy',function()

@@ -1,4 +1,4 @@
-# Performance and Operation Diagnostics (0.2.3)
+# Performance and Operation Diagnostics (0.3.0)
 
 This document defines the optional `operation` block added to the runtime report
 and the static Lua report. It is operational metadata about CESuite's own work,
@@ -145,3 +145,11 @@ identical with or without instrumentation.
 
 Address Evidence is not instrumented. It remains a pure evidence document with
 no `operation` block, so its schema and consumers are unchanged.
+
+## Operation vs coverage
+
+`operation` describes how an operation executed (status, timings, warnings).
+`coverage` describes how much of the known universe was collected, discovered
+or runtime-validated. They are independent; `operation.source_complete=true`
+means collection traversed the captured source only. See
+[coverage-model.md](coverage-model.md).

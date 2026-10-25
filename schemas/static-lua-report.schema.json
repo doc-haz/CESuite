@@ -195,6 +195,12 @@
     },
     "operation": {
       "$ref": "#/$defs/operation"
+    },
+    "dynamic_analysis": {
+      "$ref": "#/$defs/dynamic_analysis"
+    },
+    "coverage": {
+      "$ref": "#/$defs/coverage"
     }
   },
   "$defs": {
@@ -366,6 +372,501 @@
               "minimum": 0
             }
           }
+        }
+      }
+    },
+    "dynamicCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "text",
+        "dependencies",
+        "resolution",
+        "fallback"
+      ],
+      "properties": {
+        "kind": {
+          "const": "conditional_expression"
+        },
+        "text": {
+          "type": "string"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resolution": {
+          "const": "unknown"
+        },
+        "fallback": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "dynamicCandidate": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "kind",
+        "source_script",
+        "source_line",
+        "consumer",
+        "status",
+        "runtime_validated"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "literal_pattern",
+            "derived_pattern",
+            "conditional_pattern",
+            "symbol_only",
+            "unknown"
+          ]
+        },
+        "pattern": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "symbol": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_script": {
+          "type": "string"
+        },
+        "source_line": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "consumer": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "runtime_validated": {
+          "const": false
+        },
+        "condition": {
+          "$ref": "#/$defs/dynamicCondition"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collection",
+        "discovery",
+        "validation"
+      ],
+      "properties": {
+        "collection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "units_discovered",
+            "units_processed",
+            "complete",
+            "universe_known",
+            "denominator",
+            "status",
+            "percentage",
+            "limitations"
+          ],
+          "properties": {
+            "scope": {
+              "type": "string"
+            },
+            "units_discovered": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "units_processed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "complete": {
+              "type": "boolean"
+            },
+            "universe_known": {
+              "type": "boolean"
+            },
+            "denominator": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "complete",
+                "partial",
+                "unavailable",
+                "unknown",
+                "limit_reached",
+                "not_applicable"
+              ]
+            },
+            "percentage": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "discovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "patterns_discovered",
+            "patterns_literal",
+            "patterns_derived",
+            "patterns_conditional",
+            "patterns_symbol_only",
+            "entities_discovered",
+            "candidates",
+            "linked",
+            "unresolved",
+            "unsupported",
+            "complete",
+            "universe_known",
+            "denominator",
+            "status",
+            "percentage",
+            "limitations"
+          ],
+          "properties": {
+            "patterns_discovered": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "patterns_literal": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "patterns_derived": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "patterns_conditional": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "patterns_symbol_only": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "entities_discovered": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "candidates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "linked": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unsupported": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "complete": {
+              "type": "boolean"
+            },
+            "universe_known": {
+              "type": "boolean"
+            },
+            "denominator": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "complete",
+                "partial",
+                "unavailable",
+                "unknown",
+                "limit_reached",
+                "not_applicable"
+              ]
+            },
+            "percentage": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "candidates",
+            "runtime_attempted",
+            "runtime_validated",
+            "runtime_unique",
+            "runtime_ambiguous",
+            "runtime_no_match",
+            "runtime_error",
+            "runtime_unavailable",
+            "unresolved",
+            "unsupported",
+            "complete",
+            "universe_known",
+            "denominator",
+            "status",
+            "percentage",
+            "limitations"
+          ],
+          "properties": {
+            "candidates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runtime_attempted": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runtime_validated": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runtime_unique": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runtime_ambiguous": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runtime_no_match": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runtime_error": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runtime_unavailable": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unsupported": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "complete": {
+              "type": "boolean"
+            },
+            "universe_known": {
+              "type": "boolean"
+            },
+            "denominator": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "complete",
+                "partial",
+                "unavailable",
+                "unknown",
+                "limit_reached",
+                "not_applicable"
+              ]
+            },
+            "percentage": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "dynamic_analysis": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "version",
+        "counts",
+        "patterns",
+        "edges",
+        "nodes",
+        "dependencies",
+        "providers",
+        "unresolved",
+        "limits",
+        "status"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "limit_reached"
+          ]
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "entries",
+            "specs",
+            "literal",
+            "literal_unique",
+            "derived",
+            "conditional",
+            "symbol_only",
+            "symbol_only_pure",
+            "unique_symbols",
+            "candidates",
+            "runtime_validated"
+          ],
+          "properties": {
+            "entries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "specs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "literal": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "literal_unique": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "derived": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "conditional": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "symbol_only": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "symbol_only_pure": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unique_symbols": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "candidates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runtime_validated": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "patterns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dynamicCandidate"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "limits": {
+          "type": "object"
         }
       }
     }

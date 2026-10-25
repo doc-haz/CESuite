@@ -61,7 +61,7 @@ local function maskLua(raw,state)
   return table.concat(out)
 end
 
-local function luaDependencies(text,script,report,startLine,section)
+local function luaDependencies(text,script,report,startLine,section,sharedLocals)
   local tokens,state,line={}, {},startLine
   for raw in (text..'\n'):gmatch('(.-)\n') do
     local clean=maskLua(raw,state)
@@ -93,6 +93,7 @@ local function luaDependencies(text,script,report,startLine,section)
   -- Suppress explicit local/parameter/loop names throughout this chunk. This
   -- deliberately under-reports shadowed names instead of guessing Lua scope.
   local locals={}
+  for name in pairs(sharedLocals or {}) do locals[name]=true end
   for i,t in ipairs(tokens) do
     if t.value=='local' or t.value=='for' then
       local j=i+1
@@ -114,6 +115,9 @@ local function luaDependencies(text,script,report,startLine,section)
         j=j+1
       end
     end
+  end
+  for name in pairs(locals) do
+    if sharedLocals then sharedLocals[name]=true end
   end
   local tableDepth=0
   for i,t in ipairs(tokens) do
@@ -449,11 +453,12 @@ function M.inspect(script,report)
 
   local luaText,luaLine={},nil
   local luaSection=section
+  local sharedLocals={}
 
   local function flushLua()
     if luaLine then
       local text=table.concat(luaText,'\n')
-      luaDependencies(text,script,report,luaLine,luaSection)
+      luaDependencies(text,script,report,luaLine,luaSection,sharedLocals)
 
       local embedded={
         id=script.id..'-lua-'..luaLine,
