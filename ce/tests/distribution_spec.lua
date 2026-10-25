@@ -10,6 +10,8 @@ local function reset()
   menus={Count=0};messages={};created=0;failAt=nil
   menus.add=function(item) menus[menus.Count]=item;menus.Count=menus.Count+1 end
   getMainForm=function() return {Menu={Items=menus}} end
+  getCEVersion=nil
+  createTimer=nil
   getAutorunPath=function() return root..'/autorun/' end
   showMessage=function(message) messages[#messages+1]=message end
   createMenuItem=function(owner)
@@ -29,12 +31,18 @@ local function reset()
   end
 end
 local function test(name,fn) reset();fn();tests=tests+1;print('PASS '..name) end
+local function item(caption)
+  for _,child in ipairs(menus[0].children) do
+    if child.Caption==caption then return child end
+  end
+  error('menu item not found: '..tostring(caption))
+end
 
 test('autorun then CT then autorun preserves instance, report and one menu',function()
   local core=assert(dofile(autorun));eq(core.status,'ready');eq(core.distribution,'autorun')
   core.last_report={sentinel=true}
   eq(dofile(portable),core);eq(dofile(autorun),core);eq(core.last_report.sentinel,true)
-  eq(menus.Count,1);eq(created,14)
+  eq(menus.Count,1);eq(created,19)
   eq(core.install(),core);eq(menus.Count,1)
 end)
 test('CT then autorun preserves portable instance',function()
@@ -52,11 +60,11 @@ test('static lua menu items trigger analysis and export without executing target
       return {title='CESuite Static Lua AOB Analysis',candidate_count=22}
     end
     core.showReport=function(r) shown=r end
-    eq(menus[0].children[10].Caption,'Static Lua AOB Analysis')
-    menus[0].children[10].OnClick()
+    eq(item('Static Lua AOB Analysis').Caption,'Static Lua AOB Analysis')
+    item('Static Lua AOB Analysis').OnClick()
     eq(staticCalls,1);eq(shown.candidate_count,22)
 
-    eq(menus[0].children[11].Caption,'Export Static Lua Report')
+    eq(item('Export Static Lua Report').Caption,'Export Static Lua Report')
     local exported,destroyed=false,0
     createSaveDialog=function()
       return {
@@ -66,7 +74,7 @@ test('static lua menu items trigger analysis and export without executing target
       }
     end
     core.exportEnriched=function(p) exported=p end
-    menus[0].children[11].OnClick()
+    item('Export Static Lua Report').OnClick()
     eq(exported,'CESuite_Runtime_Report_enriched.json');eq(destroyed,1)
   end
 end)
@@ -110,8 +118,8 @@ test('diagnostics summary shows the simple report in the viewer',function()
     createForm=function() return {show=function() end,destroy=function() end} end
     createMemo=function() return {} end
     local core=assert(dofile(path))
-    eq(menus[0].children[12].Caption,'Diagnostics Summary')
-    menus[0].children[12].OnClick()
+    eq(item('Diagnostics Summary').Caption,'Diagnostics Summary')
+    item('Diagnostics Summary').OnClick()
     assert(core.memo and core.memo.Text and core.memo.Text:find('# CESuite Simple Report',1,true),
       'viewer must show the simple report')
     eq(core.state.busy,false);eq(#messages,0)
@@ -131,8 +139,8 @@ test('export reports writes both report files from the real core',function()
       dialog.execute=function() dialog.FileName=base;return true end
       return dialog
     end
-    eq(menus[0].children[13].Caption,'Export Reports')
-    menus[0].children[13].OnClick()
+    eq(item('Export Reports').Caption,'Export Reports')
+    item('Export Reports').OnClick()
     local f=assert(io.open(base..'_Simple.md','rb'))
     local simple=f:read('*a');f:close()
     assert(simple:find('# CESuite Simple Report',1,true),'simple report missing')
@@ -158,15 +166,53 @@ test('export reports failure and cancellation are reported without throwing',fun
       return dialog
     end
     core.exportReports=function() return {status='failed',error='synthetic write failure'} end
-    menus[0].children[13].OnClick()
+    item('Export Reports').OnClick()
     assert(#messages>0,'expected a message')
     assert(messages[#messages]:find('synthetic write failure',1,true),'message must name the failure')
     assert(messages[#messages]:find('No report files were changed',1,true),'message must state files were kept')
     eq(core.state.busy,false)
 
     core.exportReports=function() return {status='cancelled'} end
-    menus[0].children[13].OnClick()
+    item('Export Reports').OnClick()
     assert(messages[#messages]:find('overwrite cancelled',1,true),'expected cancellation message')
+    eq(core.state.busy,false)
+  end
+end)
+
+test('address evidence inspector opens a read-only form and exports JSON',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    getOpenedProcessID=function() return 0 end
+    local memos,edits,buttons={},{},{}
+    createForm=function() return {show=function() end,hide=function() end,destroy=function() end} end
+    createEdit=function() local e={Text='0x401000'};edits[#edits+1]=e;return e end
+    createPanel=function() return {} end
+    createMemo=function() local m={};memos[#memos+1]=m;return m end
+    createButton=function() local b={};buttons[#buttons+1]=b;return b end
+    local core=assert(dofile(path))
+    eq(item('Address Evidence Inspector').Caption,'Address Evidence Inspector')
+    item('Address Evidence Inspector').OnClick()
+    local byCaption={}
+    for _,b in ipairs(buttons) do byCaption[b.Caption]=b end
+    assert(byCaption.Inspect,'Inspect button missing')
+    byCaption.Inspect.OnClick()
+    assert(memos[1] and memos[1].Text,'memo text missing')
+    assert(memos[1].Text:find('"title":"CESuite Address Evidence"',1,true),'evidence JSON missing')
+    local copied
+    writeToClipboard=function(text) copied=text end
+    byCaption['Copy JSON'].OnClick()
+    assert(copied and copied:find('CESuite Address Evidence',1,true),'copy failed')
+    local exported=root..'/addr_evidence.json'
+    createSaveDialog=function()
+      local dialog={destroy=function() end}
+      dialog.execute=function() dialog.FileName=exported;return true end
+      return dialog
+    end
+    byCaption['Export JSON'].OnClick()
+    local f=assert(io.open(exported,'rb'))
+    local json=f:read('*a');f:close()
+    os.remove(exported)
+    assert(json:find('"schema_version":"0.1"',1,true),'exported JSON missing schema version')
     eq(core.state.busy,false)
   end
 end)
@@ -181,8 +227,8 @@ test('summary menu refreshes a table analysis in both distributions',function()
       return {dependency_summary={{name='GAME_STATE',status='unverified'}}}
     end
     core.showReport=function(report) shown=report end
-    eq(menus[0].children[8].Caption,'Dependency Summary')
-    menus[0].children[8].OnClick()
+    eq(item('Dependency Summary').Caption,'Dependency Summary')
+    item('Dependency Summary').OnClick()
     eq(calls,1);eq(shown.dependency_summary[1].name,'GAME_STATE')
     eq(shown.dependency_summary[1].status,'unverified');eq(#messages,0)
   end
@@ -207,9 +253,9 @@ test('module dump menu is explicit, cancellation safe and destroys dialog',funct
       eq(options.confirmOverwrite({'chosen.bin'}),true)
       return {status='complete',bytes_written=10,size=10,file=file}
     end
-    eq(menus[0].children[9].Caption,'Export Module Dump')
+    eq(item('Export Module Dump').Caption,'Export Module Dump')
     inputQuery=function() return nil end
-    menus[0].children[9].OnClick();eq(calls,0)
+    item('Export Module Dump').OnClick();eq(calls,0)
     inputQuery=function() return 'GAME.EXE' end
     local accepted=false
     createSaveDialog=function()
@@ -218,22 +264,22 @@ test('module dump menu is explicit, cancellation safe and destroys dialog',funct
       dialog.destroy=function() destroyed=destroyed+1 end
       return dialog
     end
-    menus[0].children[9].OnClick();eq(calls,0);eq(destroyed,1)
+    item('Export Module Dump').OnClick();eq(calls,0);eq(destroyed,1)
     accepted=true
-    menus[0].children[9].OnClick();eq(calls,1);eq(destroyed,2)
+    item('Export Module Dump').OnClick();eq(calls,1);eq(destroyed,2)
     eq(progressDestroyed,1);eq(pumps,1)
     assert(messages[#messages]:find('complete',1,true))
     core.dumpModule=function() error('synthetic dump failure') end
-    menus[0].children[9].OnClick();eq(destroyed,3)
+    item('Export Module Dump').OnClick();eq(destroyed,3)
     eq(progressDestroyed,2)
     assert(messages[#messages]:find('synthetic dump failure',1,true))
   end
 end)
 test('remove and reload restores one menu and exposes status',function()
   local core=assert(dofile(autorun))
-  menus[0].children[7].OnClick();eq(core.status,'stopped');eq(menus.Count,0)
+  item('Remove CESuite Menu').OnClick();eq(core.status,'stopped');eq(menus.Count,0)
   eq(dofile(portable),core);eq(core.status,'ready');eq(menus.Count,1)
-  menus[0].children[6].OnClick();assert(messages[1]:find(core.version,1,true))
+  item('About CESuite').OnClick();assert(messages[1]:find(core.version,1,true))
 end)
 test('partial menu failure cleans up and permits retry',function()
   failAt=3
@@ -285,5 +331,184 @@ end)
 test('orphan named menu is preserved without a duplicate',function()
   menus.add({Name='CESuiteCoreMenu'})
   eq(dofile(portable),nil);eq(menus.Count,1);eq(CESuiteCore,nil)
+end)
+test('final menu order, separators and single menu are exact',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    local core=assert(dofile(path))
+    local expected={
+      'Analyze Current Process','Analyze Loaded Table','Validate AOBs',
+      'Inspect Selected Script','Address Evidence Inspector','-',
+      'Dependency Summary','Diagnostics Summary','-',
+      'Export Analysis Report','Export Reports','Export Module Dump',
+      'Static Lua AOB Analysis','Export Static Lua Report','-',
+      'Remove CESuite Menu','-','About CESuite'}
+    eq(menus.Count,1)
+    eq(#menus[0].children,#expected)
+    for i,caption in ipairs(expected) do
+      eq(menus[0].children[i].Caption,caption,'item '..i)
+    end
+    local commands,separators=0,0
+    for _,child in ipairs(menus[0].children) do
+      if child.Caption=='-' then separators=separators+1 else commands=commands+1 end
+    end
+    eq(commands,14)
+    eq(separators,4)
+    eq(menus[0].children[#expected].Caption,'About CESuite')
+    eq(menus[0].children[#expected-2].Caption,'Remove CESuite Menu')
+    eq(menus[0].children[#expected-1].Caption,'-')
+    eq(menus[0].children[#expected-3].Caption,'-')
+    eq(core.status,'ready')
+  end
+end)
+test('removing the menu destroys separators and reinstall recreates one ordered menu',function()
+  reset()
+  local core=assert(dofile(autorun))
+  eq(#menus[0].children,18)
+  item('Remove CESuite Menu').OnClick()
+  eq(menus.Count,0)
+  eq(core.status,'stopped')
+  local again=assert(dofile(autorun))
+  eq(again.status,'ready')
+  eq(menus.Count,1)
+  eq(#menus[0].children,18)
+  eq(menus[0].children[18].Caption,'About CESuite')
+  eq(menus[0].children[6].Caption,'-')
+end)
+local function nativeForm()
+  return {Menu={Items=menus,Images={Count=40,Width=16,Height=16}}}
+end
+local NATIVE_72={
+  ['Analyze Current Process']=7,
+  ['Analyze Loaded Table']=3,
+  ['Validate AOBs']=8,
+  ['Inspect Selected Script']=10,
+  ['Address Evidence Inspector']=17,
+  ['Dependency Summary']=9,
+  ['Diagnostics Summary']=2,
+  ['Export Analysis Report']=4,
+  ['Export Reports']=5,
+  ['Export Module Dump']=38,
+  ['Static Lua AOB Analysis']=10,
+  ['Export Static Lua Report']=4,
+  ['Remove CESuite Menu']=0,
+  ['About CESuite']=11}
+
+test('native icons apply the validated CE 7.72 mapping',function()
+  for _,path in ipairs({autorun,portable}) do
+    reset()
+    getCEVersion=function() return 7.72 end
+    getMainForm=nativeForm
+    assert(dofile(path))
+    for caption,index in pairs(NATIVE_72) do
+      eq(item(caption).ImageIndex,index,'index for '..caption)
+      assert(index>=0 and index<40,'index out of range for '..caption)
+    end
+    eq(item('Remove CESuite Menu').ImageIndex,0)
+    eq(item('About CESuite').ImageIndex,11)
+    for _,child in ipairs(menus[0].children) do
+      if child.Caption=='-' then eq(child.ImageIndex,-1,'separator has an icon') end
+    end
+    eq(#menus[0].children,18)
+  end
+end)
+test('unknown CE version keeps the menu text-only',function()
+  reset()
+  getCEVersion=function() return 7.99 end
+  getMainForm=nativeForm
+  assert(dofile(autorun))
+  for _,child in ipairs(menus[0].children) do
+    eq(child.ImageIndex,-1,'unexpected icon for '..child.Caption)
+  end
+  eq(#menus[0].children,18)
+  item('About CESuite').OnClick()
+  assert(#messages>0)
+end)
+test('missing host ImageList keeps the menu text-only',function()
+  reset()
+  getCEVersion=function() return 7.72 end
+  getMainForm=function() return {Menu={Items=menus}} end
+  assert(dofile(autorun))
+  for _,child in ipairs(menus[0].children) do
+    eq(child.ImageIndex,-1,'unexpected icon for '..child.Caption)
+  end
+  eq(#menus[0].children,18)
+end)
+test('out-of-range mapping entries are dropped, others still apply',function()
+  reset()
+  getCEVersion=function() return 7.72 end
+  getMainForm=function() return {Menu={Items=menus,Images={Count=10}}} end
+  assert(dofile(autorun))
+  eq(item('Analyze Current Process').ImageIndex,7)
+  eq(item('Remove CESuite Menu').ImageIndex,0)
+  eq(item('Inspect Selected Script').ImageIndex,-1)
+  eq(item('Address Evidence Inspector').ImageIndex,-1)
+  eq(item('Export Module Dump').ImageIndex,-1)
+  eq(item('About CESuite').ImageIndex,-1)
+end)
+test('version API failure never breaks the menu',function()
+  reset()
+  getCEVersion=function() error('version unavailable') end
+  getMainForm=nativeForm
+  assert(dofile(autorun))
+  eq(item('Analyze Current Process').ImageIndex,-1)
+  eq(#menus[0].children,18)
+  item('Dependency Summary').OnClick()
+  eq(#messages,0)
+end)
+test('remove and recreate applies the native mapping again',function()
+  reset()
+  getCEVersion=function() return 7.72 end
+  getMainForm=nativeForm
+  local core=assert(dofile(autorun))
+  eq(item('About CESuite').ImageIndex,11)
+  item('Remove CESuite Menu').OnClick()
+  eq(menus.Count,0)
+  local again=assert(dofile(autorun))
+  eq(menus.Count,1)
+  eq(#menus[0].children,18)
+  eq(item('Validate AOBs').ImageIndex,8)
+  eq(item('About CESuite').ImageIndex,11)
+  eq(again.status,'ready')
+end)
+test('late ImageList completion re-applies high indices once',function()
+  reset()
+  local count=38
+  local timers={}
+  getCEVersion=function() return 7.72 end
+  getMainForm=function() return {Menu={Items=menus,Images={Count=count}}} end
+  createTimer=function(owner,enabled)
+    local timer={destroyed=0}
+    timer.destroy=function() timer.destroyed=timer.destroyed+1 end
+    timers[#timers+1]=timer
+    return timer
+  end
+  local core=assert(dofile(autorun))
+  eq(#timers,1)
+  eq(item('Export Module Dump').ImageIndex,-1)
+  eq(item('About CESuite').ImageIndex,11)
+  count=40
+  timers[1].OnTimer(timers[1])
+  eq(item('Export Module Dump').ImageIndex,38)
+  eq(timers[1].Enabled,false)
+  eq(timers[1].destroyed,1)
+  eq(core.icon_timer,nil)
+end)
+test('shutdown destroys the pending icon refresh',function()
+  reset()
+  local timers={}
+  getCEVersion=function() return 7.72 end
+  getMainForm=function() return {Menu={Items=menus,Images={Count=40}}} end
+  createTimer=function()
+    local timer={destroyed=0}
+    timer.destroy=function() timer.destroyed=timer.destroyed+1 end
+    timers[#timers+1]=timer
+    return timer
+  end
+  local core=assert(dofile(autorun))
+  eq(#timers,1)
+  item('Remove CESuite Menu').OnClick()
+  eq(timers[1].destroyed,1)
+  eq(core.icon_timer,nil)
 end)
 print(string.format('%d distribution tests passed (synthetic CE objects; not live CE)',tests))

@@ -214,7 +214,7 @@ class AssessmentContractTests(unittest.TestCase):
         self.assertEqual(self.simple_one, self.simple_two)
         self.assertEqual(self.extensive_one['assessment'], self.extensive_two['assessment'])
         self.assertEqual(self.extensive_one['core_version'], '0.1.9')
-        self.assertEqual(self.extensive_one['static_lua_analysis']['suite_version'], '0.2.1')
+        self.assertEqual(self.extensive_one['static_lua_analysis']['suite_version'], '0.2.2')
         self.assertEqual(self.extensive_one['schema_version'], '0.1')
 
     def test_legacy_reports_still_validate(self):

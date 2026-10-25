@@ -213,6 +213,9 @@ JSON are exactly the data the Simple Report renders.
 - Existing reports (including v0.1.4) still validate against the extended schema.
 - Schema conditionals reject any attempt to label static or lexical evidence as a
   runtime observation.
+- The Address Evidence Inspector (0.2.2) is a separate, explicitly invoked report
+  with its own schema; it does not add fields to the runtime report or to the
+  Simple/Extensive reports.
 
 ## Limits
 

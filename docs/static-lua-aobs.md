@@ -56,7 +56,7 @@ In addition to offline Python analysis, CESuite 0.2.0 adds two in-CE menu comman
 
 Reports distinguish between engine compatibility and tool suite release:
 - `core_version`: `0.1.9` indicates the baseline runtime report format and schema contract compatibility level. Existing automated consumers relying on `0.1.9` runtime semantics continue to parse reports without breaking changes.
-- `suite_version`: `0.2.1` records the actual CESuite release that executed the analysis and generated the static/enriched report. When available, it is exposed in the `static_lua_analysis` section and in the in-CE viewer.
+- `suite_version`: `0.2.2` records the actual CESuite release that executed the analysis and generated the static/enriched report. When available, it is exposed in the `static_lua_analysis` section and in the in-CE viewer.
 - A dedicated JSON schema for standalone static Lua reports is available at [`schemas/static-lua-report.schema.json`](../schemas/static-lua-report.schema.json).
 
 ## Synthetic Test Fixture

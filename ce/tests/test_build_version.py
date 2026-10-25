@@ -9,7 +9,7 @@ from build_ce import version
 class BuildVersionTests(unittest.TestCase):
     def test_extract_from_core_file(self):
         v = version()
-        self.assertEqual(v, '0.2.1')
+        self.assertEqual(v, '0.2.2')
 
     def test_multiple_fields_anchoring(self):
         source = """

@@ -38,6 +38,189 @@ function M.showText(Core,api,text)
   present(Core,api,text)
 end
 
+local function memoSet(memo,text)
+  if memo.Lines then memo.Lines.Text=text else memo.Text=text end
+end
+
+local function selectedMemoryViewerAddress(api)
+  if type(api.getMemoryViewForm)~='function' then return nil end
+  local ok,form=pcall(api.getMemoryViewForm)
+  if not ok or not form then return nil end
+  local dv
+  pcall(function() dv=form.DisassemblerView or form.Disassemblerview end)
+  local address=dv and dv.SelectedAddress
+  if type(address)=='number' then return address end
+  return nil
+end
+
+-- Read-only Address Evidence Inspector. Everything happens on explicit click;
+-- nothing is collected in the background and no CE hook is installed.
+local function openAddressInspector(Core,api,initial)
+  if Core.address_form then
+    Core.address_form.show()
+    if type(initial)=='number' then
+      Core.address_edit.Text=string.format('0x%X',initial)
+      Core.address_refresh()
+    end
+    return
+  end
+  local form=Core.state.own(api.createForm(false))
+  Core.address_form=form
+  form.Caption='CESuite Address Evidence Inspector'
+  form.Width=900
+  form.Height=650
+  form.OnClose=function() return caHide or 0 end
+
+  local edit=api.createEdit(form)
+  edit.Parent=form
+  edit.Align='alTop'
+  edit.Height=26
+  edit.Text=type(initial)=='number' and string.format('0x%X',initial) or ''
+  Core.address_edit=edit
+
+  local panel=api.createPanel(form)
+  panel.Parent=form
+  panel.Align='alTop'
+  panel.Height=34
+
+  local memo=api.createMemo(form)
+  memo.Parent=form
+  memo.Align='alClient'
+  memo.ReadOnly=true
+  memo.ScrollBars='ssBoth'
+  memo.WordWrap=false
+  Core.address_memo=memo
+
+  local current=nil
+  local function inspectCurrent()
+    local ok,result=pcall(function()
+      return Core.inspectAddress(edit.Text or '',{bytes=32})
+    end)
+    if not ok then
+      api.showMessage('CESuite: '..tostring(result))
+      return
+    end
+    current=result
+    memoSet(memo,Export.encode(result))
+  end
+  Core.address_refresh=inspectCurrent
+
+  local function button(caption,left,width,onclick)
+    local item=api.createButton(panel)
+    item.Parent=panel
+    item.Left=left
+    item.Top=4
+    item.Width=width
+    item.Height=26
+    item.Caption=caption
+    item.OnClick=onclick
+    return item
+  end
+
+  button('Inspect',8,80,inspectCurrent)
+  button('Use Memory Viewer Selection',96,190,function()
+    local address=selectedMemoryViewerAddress(api)
+    if not address then
+      api.showMessage('CESuite: no address is selected in Memory Viewer.')
+      return
+    end
+    edit.Text=string.format('0x%X',address)
+    inspectCurrent()
+  end)
+  button('Copy JSON',294,100,function()
+    if type(api.writeToClipboard)~='function' then
+      api.showMessage('CESuite: clipboard API is unavailable.')
+      return
+    end
+    local text=current and Export.encode(current) or ''
+    api.writeToClipboard(text)
+    api.showMessage('CESuite address evidence copied to the clipboard.')
+  end)
+  button('Export JSON',402,110,function()
+    local evidence=current
+    if not evidence then
+      local ok,result=pcall(function()
+        return Core.inspectAddress(edit.Text or '',{bytes=32})
+      end)
+      if not ok then
+        api.showMessage('CESuite: '..tostring(result))
+        return
+      end
+      evidence=result
+      current=result
+      memoSet(memo,Export.encode(result))
+    end
+    local dialog=api.createSaveDialog(api.getMainForm())
+    local ok,err=pcall(function()
+      dialog.FileName='CESuite_Address_Evidence.json'
+      dialog.DefaultExt='json'
+      dialog.Filter='JSON evidence|*.json'
+      dialog.Options='[ofOverwritePrompt,ofPathMustExist]'
+      if dialog.execute() then
+        Core.exportAddressEvidence(evidence,dialog.FileName)
+        api.showMessage('CESuite address evidence saved: '..dialog.FileName)
+      end
+    end)
+    dialog.destroy()
+    if not ok then error(err) end
+  end)
+  button('Close',520,80,function() form.hide() end)
+
+  form.show()
+  if edit.Text~='' then inspectCurrent() end
+end
+
+-- Native Cheat Engine menu icons. CESuite never modifies the host ImageList: it
+-- only references images that CE already loaded, through MenuItem.ImageIndex.
+-- The mapping is validated per CE version; unknown versions stay text-only.
+local NATIVE_ICONS={
+  ['7.72']={
+    ['Analyze Current Process']=7,      -- Open Process
+    ['Analyze Loaded Table']=3,         -- Open File
+    ['Validate AOBs']=8,                -- Add scan tab
+    ['Inspect Selected Script']=10,     -- Show Cheat Table Lua Script
+    ['Address Evidence Inspector']=17,  -- Set custom crosshair
+    ['Dependency Summary']=9,           -- Add file
+    ['Diagnostics Summary']=2,          -- Settings
+    ['Export Analysis Report']=4,       -- Save
+    ['Export Reports']=5,               -- Save As
+    ['Export Module Dump']=38,          -- Save scan session
+    ['Static Lua AOB Analysis']=10,     -- Show Cheat Table Lua Script
+    ['Export Static Lua Report']=4,     -- Save
+    ['Remove CESuite Menu']=0,          -- Clear list
+    ['About CESuite']=11                -- About
+  }
+}
+
+local function nativeIconMapping(api)
+  if type(api.getCEVersion)~='function' or type(api.getMainForm)~='function' then
+    return nil
+  end
+  local okVersion,value=pcall(api.getCEVersion)
+  if not okVersion then return nil end
+  local version
+  if type(value)=='number' then version=string.format('%.2f',value)
+  elseif type(value)=='string' then version=value end
+  if version==nil then return nil end
+  local mapping=NATIVE_ICONS[version]
+  if mapping==nil then return nil end
+  local okForm,form=pcall(api.getMainForm)
+  if not okForm or form==nil then return nil end
+  local menu=form.Menu
+  local images=menu and menu.Images
+  if images==nil then return nil end
+  local okCount,count=pcall(function() return images.Count end)
+  if not okCount or type(count)~='number' or count<=0 then return nil end
+  local validated={}
+  for caption,index in pairs(mapping) do
+    if type(index)=='number' and index>=0 and index<count then
+      validated[caption]=index
+    end
+  end
+  if next(validated)==nil then return nil end
+  return validated
+end
+
 function M.install(Core,api)
   local parent=api.getMainForm().Menu
 
@@ -53,6 +236,22 @@ function M.install(Core,api)
   menu.Name='CESuiteCoreMenu'
   parent.Items.add(menu)
 
+  -- Cheat Engine may still be building its main ImageList while autorun runs, so
+  -- the mapping is applied at creation and once more after startup (one-shot
+  -- timer that destroys itself). Unknown versions or missing lists stay iconless.
+  local icon_items={}
+  local native_icons=nativeIconMapping(api)
+  local function applyNativeIcons()
+    local mapping=nativeIconMapping(api)
+    for caption,item in pairs(icon_items) do
+      local index=mapping and mapping[caption]
+      pcall(function()
+        item.ImageIndex=(type(index)=='number') and index or -1
+      end)
+    end
+  end
+  applyNativeIcons()
+
   local function command(caption,callback)
     local item=api.createMenuItem(menu)
     item.Caption=caption
@@ -65,6 +264,23 @@ function M.install(Core,api)
     end
 
     menu.add(item)
+    icon_items[caption]=item
+    local index=native_icons and native_icons[caption]
+    if type(index)=='number' then
+      pcall(function() item.ImageIndex=index end)
+    else
+      -- Unknown CE version, missing host ImageList or unmapped command: no icon.
+      pcall(function() item.ImageIndex=-1 end)
+    end
+  end
+
+  local function separator()
+    local item=api.createMenuItem(menu)
+    -- Delphi/VCL renders a menu item whose caption is "-" as a real separator.
+    item.Caption='-'
+    menu.add(item)
+    -- Explicitly iconless even if CE ever assigns a default index.
+    pcall(function() item.ImageIndex=-1 end)
   end
 
   local function inspect(mode)
@@ -88,6 +304,25 @@ function M.install(Core,api)
     inspect('selected')
   end)
 
+  command('Address Evidence Inspector',function()
+    openAddressInspector(Core,api,selectedMemoryViewerAddress(api))
+  end)
+
+  separator()
+
+  command('Dependency Summary',function()
+    local r=Core.analyze('table')
+    Core.showReport({dependency_summary=r.dependency_summary,
+      note='Lexical groups only; all unverified. Counts include repeated uses. Occurrence indices refer to dependencies in the full report from this same analysis.'})
+  end)
+
+  command('Diagnostics Summary',function()
+    local text=Core.simpleText()
+    Core.showText(text)
+  end)
+
+  separator()
+
   command('Export Analysis Report',function()
     local dialog=api.createSaveDialog(api.getMainForm())
 
@@ -110,22 +345,35 @@ function M.install(Core,api)
     end
   end)
 
-  command('About CESuite',function()
-    api.showMessage(
-      'CESuite '..Core.version..
-      ' | '..Core.status..
-      ' | '..tostring(Core.distribution)
-    )
-  end)
-
-  command('Remove CESuite Menu',function()
-    Core.shutdown()
-  end)
-
-  command('Dependency Summary',function()
-    local r=Core.analyze('table')
-    Core.showReport({dependency_summary=r.dependency_summary,
-      note='Lexical groups only; all unverified. Counts include repeated uses. Occurrence indices refer to dependencies in the full report from this same analysis.'})
+  command('Export Reports',function()
+    local dialog=api.createSaveDialog(api.getMainForm())
+    local ok,err=pcall(function()
+      dialog.FileName='CESuite_Report'
+      dialog.DefaultExt='md'
+      dialog.Filter='CESuite reports|*.md'
+      dialog.Options='[ofPathMustExist]'
+      if not dialog.execute() then return end
+      local result=Core.exportReports(dialog.FileName,{confirmOverwrite=function(files)
+        local answer=api.messageDialog('These report files already exist:\n'..table.concat(files,'\n')..
+          '\n\nReplace them?',
+          api.mtConfirmation or 3,api.mbYes or 0,api.mbNo or 1)
+        return answer==(api.mrYes or 6)
+      end})
+      if result.status=='cancelled' then
+        api.showMessage('CESuite: overwrite cancelled; existing reports were kept.')
+      elseif result.status=='complete' then
+        api.showMessage('CESuite reports saved:'..
+          '\nSimple: '..result.simple..
+          '\nExtensive: '..result.extensive..
+          (result.retained_backups and
+            ('\nPrevious copies retained as '..'.cesuite-backup files.') or ''))
+      else
+        api.showMessage('CESuite: '..(result.error or 'Report export failed')..
+          '\nNo report files were changed.')
+      end
+    end)
+    dialog.destroy()
+    if not ok then error(err) end
   end)
 
   command('Export Module Dump',function()
@@ -216,41 +464,44 @@ function M.install(Core,api)
     if not ok then error(err) end
   end)
 
-  command('Diagnostics Summary',function()
-    local text=Core.simpleText()
-    Core.showText(text)
+  separator()
+
+  command('Remove CESuite Menu',function()
+    Core.shutdown()
   end)
 
-  command('Export Reports',function()
-    local dialog=api.createSaveDialog(api.getMainForm())
-    local ok,err=pcall(function()
-      dialog.FileName='CESuite_Report'
-      dialog.DefaultExt='md'
-      dialog.Filter='CESuite reports|*.md'
-      dialog.Options='[ofPathMustExist]'
-      if not dialog.execute() then return end
-      local result=Core.exportReports(dialog.FileName,{confirmOverwrite=function(files)
-        local answer=api.messageDialog('These report files already exist:\n'..table.concat(files,'\n')..
-          '\n\nReplace them?',
-          api.mtConfirmation or 3,api.mbYes or 0,api.mbNo or 1)
-        return answer==(api.mrYes or 6)
-      end})
-      if result.status=='cancelled' then
-        api.showMessage('CESuite: overwrite cancelled; existing reports were kept.')
-      elseif result.status=='complete' then
-        api.showMessage('CESuite reports saved:'..
-          '\nSimple: '..result.simple..
-          '\nExtensive: '..result.extensive..
-          (result.retained_backups and
-            ('\nPrevious copies retained as '..'.cesuite-backup files.') or ''))
-      else
-        api.showMessage('CESuite: '..(result.error or 'Report export failed')..
-          '\nNo report files were changed.')
-      end
-    end)
-    dialog.destroy()
-    if not ok then error(err) end
+  separator()
+
+  command('About CESuite',function()
+    api.showMessage(
+      'CESuite '..Core.version..
+      ' | '..Core.status..
+      ' | '..tostring(Core.distribution)
+    )
   end)
+
+  -- Re-apply once after startup: CE finishes populating its main ImageList after
+  -- autorun scripts run, so high indices (e.g. 38) are only valid later.
+  if type(api.createTimer)=='function' then
+    local ok,timer=pcall(api.createTimer,nil,false)
+    if ok and timer~=nil then
+      Core.icon_timer=timer
+      local armed=pcall(function()
+        timer.Interval=750
+        timer.OnTimer=function(handle)
+          handle.Enabled=false
+          pcall(function() handle.destroy() end)
+          if Core.icon_timer==handle then Core.icon_timer=nil end
+          pcall(applyNativeIcons)
+        end
+        timer.Enabled=true
+      end)
+      if not armed then
+        Core.icon_timer=nil
+        pcall(function() timer.destroy() end)
+      end
+    end
+  end
 end
 
 return M

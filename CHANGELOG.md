@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.2 - Address Evidence Inspector
+
+- **Explicit Address Inspection**: `Core.inspectAddress(input, options)` collects read-only evidence for one address. It is never called from `collectReport()` and never writes memory, sets breakpoints or installs hooks.
+- **Controlled Input Grammar**: hex literals (`0x…` or bare hex), `module+RVA` resolved through the module inventory, and numeric Memory Viewer selections. Arbitrary CE expressions are not evaluated (`getAddress`/`getAddressSafe` are not used).
+- **Structured Evidence**: query resolution, target, module/RVA, memory region and protection, bounded bytes, instruction decode, memory operand, effective address, type advisory, provenance, status, limits and limitations.
+- **Conservative Decoder From Bytes**: new self-contained decoder (prefixes, REX, selected one-byte opcodes, selected SSE opcodes and x87 memory forms) that never calls `disassemble()` or `splitDisassembledString()`. Unsupported opcodes report `unsupported`; truncated bytes report `truncated`. Operand size is tracked in bits, so byte opcodes (`88`/`8A`/`C6`) always decode as 8-bit. 8-bit registers follow REX semantics: without REX indexes 4-7 are `ah/ch/dh/bh`, with any REX prefix they are `spl/bpl/sil/dil`, and `r8b`-`r15b` are available in 64-bit mode. SSE `0F 10/11/28/29` differentiate on prefixes: no prefix `movups/movaps`, `66` `movupd/movapd`, `F3` `movss`, `F2` `movsd`.
+- **Effective Address Only When Proven**: RIP-relative and absolute static operands are resolved; register-dependent operands report `requires_runtime_context` and never read Lua register globals.
+- **Type Advisory**: `movss`/`movsd`/SSE arithmetic and x87 `dword`/`qword` operands suggest `Float`/`Double` with documented confidence. The report states an inferred advisory type, never a confirmed type.
+- **Region and Protection Evidence**: `getMemoryRegionInfo` preferred, bounded `enumMemoryRegions` fallback. Raw protection mask preserved; `READONLY`, `READWRITE`, `WRITECOPY`, `EXECUTE*`, `GUARD`, `NOACCESS` decoded. `Allocation Size` is not invented from `RegionSize`.
+- **Bounded Bytes**: maximum 64 bytes per inspection; region-boundary clamping, partial reads and a bounded byte-by-byte fallback. A partial read never becomes a fatal error.
+- **Standalone Schema**: `schemas/address-evidence.schema.json` (strict, `suite_version 0.2.2`, `core_version 0.1.9`). The runtime report schema is unchanged.
+- **In-CE UI**: `Address Evidence Inspector` with `Inspect`, `Use Memory Viewer Selection`, `Copy JSON`, `Export JSON` and `Close`; read-only form, no timers or background work.
+- **Detached Target Safety**: a cached PID or process name is no longer proof of attachment. CESuite requires a non-empty module inventory from the live target; otherwise it reports `target.attached=false` and `target.status=detached` (or `unknown` when no process is opened), clears the cached process name, keeps module/region/bytes `unknown`, and never emits `OUTSIDE_MODULE` or `UNMAPPED_ADDRESS` as `observed`. Hex addresses still resolve syntactically; `module+RVA` becomes `unavailable`. New `TARGET_DETACHED`/`TARGET_UNAVAILABLE` diagnostics.
+- **Native Menu Icons**: commands reuse Cheat Engine's own menu icons through a version-guarded mapping of `ImageIndex` values validated on CE 7.72 (16x16 host ImageList, 40 images). CESuite never writes to, replaces or copies host image resources. Unknown CE versions, a missing ImageList or an out-of-range index leave the menu text-only; icon failure never affects command behavior. A one-shot self-destroying refresh re-applies the mapping after CE finishes populating its ImageList. Command names, callbacks and behavior are unchanged.
+- **Menu Organization**: the CESuite menu is grouped with real menu separators into inspection, analysis, export and maintenance blocks, with About CESuite last. Command names, callbacks and behavior are unchanged.
+- **Out of Scope**: breakpoints, watchpoints, tracing, patching, pointer records, AOB generation, CE expression evaluation, disassembler hooks and memory writes.
+- **Tests**: 352 passing checks (Lua runtime, diagnostic assessment, address evidence, module dump, distribution, parser parity, static Lua parity, static Lua, assessment and address-evidence schemas, Python contracts), 0 failures, 0 unexpected skips.
+
 ## 0.2.1 - Reporting & Repair Guidance
 
 - **Diagnostic Model**: New derived layer (`ce/modules/diagnose.lua`) interprets evidence that already exists in a runtime report and produces a structured `assessment` with deterministic ordering. It never scans, edits, executes inspected code or invents evidence.

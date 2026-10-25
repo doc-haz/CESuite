@@ -30,26 +30,33 @@ conservative Lua/RVA hook inventory.
    engine to install the menu without replacing an already loaded address list.
    Loading/activating another table is CE behavior, outside CESuite's observation
    boundary; CESuite itself never executes that table's scripts.
-3. Use the **CESuite** menu:
+3. Use the **CESuite** menu. Commands are grouped by menu separators; `About
+   CESuite` is always the last item. Commands reuse Cheat Engine's native menu icons
+   through a version-guarded mapping (CE 7.72); the host ImageList is never modified
+   and unknown versions stay text-only:
    - **Analyze Current Process**: PID/name, architecture, modules/bases/sizes.
    - **Analyze Loaded Table**: current MemoryRecords, AA and embedded Lua;
      standalone table Lua is reported unavailable; no scans.
    - **Validate AOBs**: fresh process/table snapshot followed by scoped scans.
    - **Inspect Selected Script**: inventory of the selected MemoryRecord.
-   - **Export Analysis Report**: choose `CESuite_Runtime_Report.json`; collect a
-     **fresh full snapshot and re-scan** before writing. Never exports an old scan
-     against a newly selected process/table.
+   - **Address Evidence Inspector**: explicit, read-only evidence for one address
+     (hex or `module+RVA`). Bounded bytes, region/protection, conservative instruction
+     decode, operand and effective-address evidence, type advisory. No breakpoints,
+     writes, hooks or expression evaluation. See [Address Evidence](address-evidence.md).
    - **Dependency Summary**: grouped lexical occurrences; no resolved runtime edges.
-   - **Static Lua AOB Analysis**: passive lexical scan of table Lua scripts for supported AOB patterns, shown in the read-only JSON viewer.
-   - **Export Static Lua Report**: collects a full analysis report enriched with passive static Lua AOB observations (`static_lua_analysis`) and prompts to save JSON.
    - **Diagnostics Summary**: collects one fresh snapshot, derives the diagnostic assessment
      and shows the **Simple Report** (Markdown text) in the read-only viewer. No files are
      written. See [Reporting and repair guidance](reporting.md).
+   - **Export Analysis Report**: choose `CESuite_Runtime_Report.json`; collect a
+     **fresh full snapshot and re-scan** before writing. Never exports an old scan
+     against a newly selected process/table.
    - **Export Reports**: one save dialog, two files derived from the same collection:
      `<base>_Simple.md` (Markdown) and `<base>_Extensive.json` (runtime + static evidence +
      `assessment`). Existing files require explicit overwrite confirmation.
    - **Export Module Dump**: explicit mapped-image export with progress, cancellation
      and backup-preserving overwrite confirmation. See [Module Dump](MODULE_DUMP.md).
+   - **Static Lua AOB Analysis**: passive lexical scan of table Lua scripts for supported AOB patterns, shown in the read-only JSON viewer.
+   - **Export Static Lua Report**: collects a full analysis report enriched with passive static Lua AOB observations (`static_lua_analysis`) and prompts to save JSON.
    - **Remove CESuite Menu**: destroy only CESuite's owned menu/viewer objects.
    - **About CESuite**: show version, status and initial distribution mode.
 
@@ -58,7 +65,8 @@ available as `CESuiteCore.last_report`. Developer calls:
 `CESuiteCore.analyze('validate')`, `CESuiteCore.analyzeStaticLua()`,
 `CESuiteCore.export(path)`, `CESuiteCore.exportEnriched(path)`,
 `CESuiteCore.simpleText()`, `CESuiteCore.exportReports(path,options)`,
-`CESuiteCore.buildAssessment(report)`, `CESuiteCore.shutdown()`.
+`CESuiteCore.buildAssessment(report)`, `CESuiteCore.inspectAddress(input,options)`,
+`CESuiteCore.exportAddressEvidence(evidence,path)`, `CESuiteCore.shutdown()`.
 Reports can contain scripts and local paths; review their
 contents before sharing. No automatic upload is provided.
 
@@ -197,6 +205,17 @@ Markdown report in the viewer, and `Export Reports` writes
 `<base>_Simple.md` and `<base>_Extensive.json` together. Existing reports
 (`CESuite_Runtime_Report.json`, `CESuite_Runtime_Report_enriched.json`) are
 unchanged.
+
+## Address evidence (0.2.2)
+
+`Core.inspectAddress(input, options)` collects read-only evidence for one explicit
+address and `Core.exportAddressEvidence(evidence, path)` serializes it against
+`schemas/address-evidence.schema.json`. It is never called from `collectReport()`:
+the runtime report, the assessment and the static Lua block are unchanged.
+`core_version` stays `0.1.9`; `suite_version` is `0.2.2`. Accepted input is hex,
+`module+RVA` or a numeric Memory Viewer selection; CE expressions are not evaluated.
+Bounds are declared in the evidence (`1` address, `64` bytes, no timers, no
+breakpoints, no writes). Details: [address-evidence.md](address-evidence.md).
 
 ## Build and tests
 

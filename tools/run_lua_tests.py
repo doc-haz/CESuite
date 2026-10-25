@@ -59,6 +59,7 @@ if __name__ == '__main__':
     run(library, 'ce/tests/module_dump_spec.lua')
     run(library, 'ce/tests/luastatic_spec.lua')
     run(library, 'ce/tests/diagnose_spec.lua')
+    run(library, 'ce/tests/address_spec.lua')
     with tempfile.TemporaryDirectory(prefix='CESuite test ') as directory:
         output = Path(directory)
         build(output)

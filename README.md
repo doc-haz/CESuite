@@ -6,7 +6,7 @@ code. See [usage and limitations](docs/static-lua-aobs.md).
 
 A local analysis, diagnostics and evidence-export toolkit for Cheat Engine tables and attached processes.
 
-[Latest Release](https://github.com/doc-haz/CESuite/releases/latest) · [Installation](docs/installation.md) · [Runtime Reference](docs/runtime-core.md) · [Reporting](docs/reporting.md)
+[Latest Release](https://github.com/doc-haz/CESuite/releases/latest) · [Installation](docs/installation.md) · [Runtime Reference](docs/runtime-core.md) · [Reporting](docs/reporting.md) · [Address Evidence](docs/address-evidence.md)
 
 CESuite runs locally inside Cheat Engine 7.x (Windows, 64-bit and 32-bit processes).
 
@@ -17,6 +17,8 @@ It provides:
 - validation and uniqueness verification for supported literal AOB scans;
 - conservative dependency analysis for symbols, resources and registered names;
 - diagnostic assessment that explains apparent failures, the evidence behind them and a fixed review order;
+- read-only Address Evidence Inspector for one explicit address (hex or module+RVA), with stale-PID/detached-target detection;
+- native Cheat Engine menu icons (validated mapping for CE 7.72, never modifying host resources);
 - Simple (Markdown) and Extensive (JSON) reports derived from the same evidence;
 - mapped PE module dumping with structured JSON sidecars;
 - structured JSON evidence export for AI assistance, manual review and auditing.
@@ -25,21 +27,30 @@ Module dumping is an explicit action: CESuite never reads module memory or write
 
 ## User-facing actions
 
-Under the **CESuite** menu in Cheat Engine's main form:
+Under the **CESuite** menu in Cheat Engine's main form. Commands are grouped with
+real menu separators in five blocks: inspection, analysis, export, maintenance and
+about. `About CESuite` is always the last item. Commands reuse a small, semantic
+mapping of Cheat Engine's own native menu icons (validated only for CE 7.72); the
+host `ImageList` is never modified or replaced, and unknown versions keep the menu
+text-only.
 
 | Action | Description |
 | --- | --- |
 | **Analyze Current Process** | Process status, architecture and loaded modules. No table or script dependencies. |
 | **Analyze Loaded Table** | Complete passive inspection of the current table: records, AA scripts, resources, dependencies and diagnostics. Target memory is not read. |
-| **Inspect Selected Script** | Narrows analysis to the currently highlighted record and its script. |
 | **Validate AOBs** | Fresh process/table capture and scans for supported literal `aobscan` / `aobscanmodule` patterns, with counts and available match addresses. |
+| **Inspect Selected Script** | Narrows analysis to the currently highlighted record and its script. |
+| **Address Evidence Inspector** | Read-only evidence for one explicit address: resolution, module/RVA, region and protection, bounded bytes, a conservative instruction decode, operand/effective-address evidence and a type advisory. No breakpoints, writes or expression evaluation. |
 | **Dependency Summary** | Grouped lexical dependency occurrences, preserving raw evidence; not a resolved runtime dependency graph. |
-| **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, AI-assisted analysis or external tooling. You choose where to save it; nothing is uploaded. |
-| **Static Lua AOB Analysis** | Passive lexical analysis of table Lua scripts for supported AOB patterns, displayed in the read-only viewer without live scans. |
-| **Export Static Lua Report** | Exports a full runtime report enriched with the static_lua_analysis section (JSON). |
 | **Diagnostics Summary** | Derives the diagnostic assessment from one fresh collection and shows the readable Simple Report (Markdown) in the viewer. No files are written. |
+| **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, AI-assisted analysis or external tooling. You choose where to save it; nothing is uploaded. |
 | **Export Reports** | Writes `<base>_Simple.md` and `<base>_Extensive.json` from the same collection. The extensive report contains runtime evidence, static Lua evidence and the structured assessment. Existing files need explicit overwrite confirmation. |
 | **Export Module Dump** | A loaded PE module in mapped-image layout, plus JSON metadata, progress, cancellation and backup-preserving overwrite confirmation. |
+| **Static Lua AOB Analysis** | Passive lexical analysis of table Lua scripts for supported AOB patterns, displayed in the read-only viewer without live scans. |
+| **Export Static Lua Report** | Exports a full runtime report enriched with the static_lua_analysis section (JSON). |
+| **Remove CESuite Menu** | Closes the Core session and removes only CESuite's owned menu/viewer objects. |
+| **About CESuite** | Shows version, status and distribution mode. |
+
 
 ## Reports and repair guidance
 
@@ -66,7 +77,7 @@ observations. See [Reporting and repair guidance](docs/reporting.md).
 2. In the Cheat Engine menu, select **Settings**.
 3. In the left tree, select **General Settings**.
 4. Look for the **Cheat Engine Plugins / Autorun** directory, or locate `autorun/` in your Cheat Engine installation path (for example, `C:\Program Files\Cheat Engine 7.5\autorun\`).
-5. Extract the entire `cesuite/` folder and `CESuite_Autorun.lua` from `CESuite_Autorun_v0.2.1.zip` into the `autorun/` directory:
+5. Extract the entire `cesuite/` folder and `CESuite_Autorun.lua` from `CESuite_Autorun_v0.2.2.zip` into the `autorun/` directory:
 
 ```text
 Cheat Engine/
@@ -83,9 +94,9 @@ Cheat Engine/
 
 ### Method B: Portable / per-table use
 
-1. Download `CESuite_Core_v0.2.1.CT` from the latest release.
+1. Download `CESuite_Core_v0.2.2.CT` from the latest release.
 2. Open Cheat Engine.
-3. Open `CESuite_Core_v0.2.1.CT` (**File → Open Table** or Ctrl+O).
+3. Open `CESuite_Core_v0.2.2.CT` (**File → Open Table** or Ctrl+O).
 4. The table script runs automatically and adds the **CESuite** menu to Cheat Engine.
 5. You can now open your own game table; CESuite remains active in the menu.
 
@@ -119,7 +130,7 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 ### Report Versioning and Schemas
 
 - `core_version`: `0.1.9` indicates the baseline runtime report format and schema compatibility level for downstream consumers.
-- `suite_version`: `0.2.1` records the specific CESuite toolkit version that generated the report or static analysis.
+- `suite_version`: `0.2.2` records the specific CESuite toolkit version that generated the report or static analysis.
 - Dedicated schemas available under `schemas/`:
   - `schemas/runtime-report.schema.json`: Runtime observation report contract.
   - `schemas/static-lua-report.schema.json`: Standalone static Lua analysis report contract.
@@ -151,11 +162,11 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 
 Automated regression test results:
 
-- **284 passing checks**
+- **352 passing checks**
 - **0 skips**
 - **0 failures**
 
-These cover Lua runtime tests, diagnostic assessment, module dump behavior, distribution checks, parser parity, static Lua parity, static Lua and assessment schema validation, and Python/schema contracts.
+These cover Lua runtime tests, diagnostic assessment, address evidence, module dump behavior, distribution checks, parser parity, static Lua parity, static Lua, assessment and address-evidence schema validation, and Python/schema contracts.
 
 Recorded live validation includes:
 
@@ -178,6 +189,7 @@ Download assets and published SHA-256 values from the [current release page](htt
 
 Still pending as nonblocking follow-up work:
 
+- v0.2.2 live validation of the Address Evidence Inspector on Cheat Engine 7.72;
 - targeted live re-smoke of `Export Reports` on the corrected v0.2.1 bytes (success, overwrite, cancellation, busy recovery);
 - real homonymous-module `MODULE-SNAPSHOT-INCOMPLETE` validation;
 - live R-1 check;

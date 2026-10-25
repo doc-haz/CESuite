@@ -46,7 +46,8 @@ def autorun_files():
         files['cesuite/' + path.name] = path.read_text(encoding='utf-8')
     if (ROOT / 'LICENSE').is_file():
         files['LICENSE'] = (ROOT / 'LICENSE').read_text(encoding='utf-8')
-    return files
+    return {name: value.encode('utf-8') if isinstance(value, str) else value
+            for name, value in files.items()}
 
 
 def build(destination):
@@ -63,11 +64,11 @@ def build(destination):
     (destination / 'CESuite_Core.lua').write_text(source, encoding='utf-8', newline='\n')
     # Fixed metadata and stored compression give byte-reproducible ZIPs.
     with zipfile.ZipFile(destination / f'CESuite_Autorun_v{version()}.zip', 'w') as archive:
-        for name, text in sorted(autorun_files().items()):
+        for name, payload in sorted(autorun_files().items()):
             info = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
             info.create_system = 3
             info.external_attr = 0o100644 << 16
-            archive.writestr(info, text.encode('utf-8'))
+            archive.writestr(info, payload)
 
 
 if __name__ == '__main__':

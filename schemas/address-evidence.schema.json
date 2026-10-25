@@ -1,0 +1,1277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/doc-haz/CESuite/schemas/address-evidence.schema.json",
+  "title": "CESuite Address Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "title",
+    "core_version",
+    "suite_version",
+    "generated_at",
+    "completed_at",
+    "observation_only",
+    "status",
+    "query",
+    "target",
+    "module",
+    "symbol",
+    "region",
+    "bytes",
+    "instruction",
+    "memory_operand",
+    "effective_address",
+    "type_advisory",
+    "diagnostics",
+    "limits",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "title": {
+      "const": "CESuite Address Evidence"
+    },
+    "core_version": {
+      "const": "0.1.9"
+    },
+    "suite_version": {
+      "const": "0.2.2"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observation_only": {
+      "const": true
+    },
+    "status": {
+      "enum": [
+        "observed",
+        "candidate",
+        "unknown",
+        "unsupported",
+        "invalidated"
+      ]
+    },
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "input_kind",
+        "resolution_method",
+        "resolution_status",
+        "resolved_address",
+        "failure_reason",
+        "provenance"
+      ],
+      "properties": {
+        "input": {
+          "type": "string"
+        },
+        "input_kind": {
+          "enum": [
+            "hex",
+            "module_rva",
+            "numeric",
+            "invalid"
+          ]
+        },
+        "resolution_method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "hex_literal",
+            "module_rva",
+            "memory_viewer_selection",
+            null
+          ]
+        },
+        "resolution_status": {
+          "enum": [
+            "resolved",
+            "invalid_input",
+            "unresolved_module",
+            "ambiguous_module",
+            "out_of_range",
+            "unavailable"
+          ]
+        },
+        "resolved_address": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^0x[0-9A-F]+$"
+        },
+        "failure_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attached",
+        "pid",
+        "architecture",
+        "pointer_size",
+        "process_name",
+        "status",
+        "provenance"
+      ],
+      "properties": {
+        "attached": {
+          "type": "boolean"
+        },
+        "pid": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "architecture": {
+          "enum": [
+            "x86_64",
+            "i386",
+            "unknown"
+          ]
+        },
+        "pointer_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "enum": [
+            4,
+            8,
+            null
+          ]
+        },
+        "process_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "unknown",
+            "detached"
+          ]
+        },
+        "provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inside_module",
+        "module_name",
+        "module_base",
+        "module_size",
+        "module_path",
+        "rva",
+        "ambiguity",
+        "status",
+        "provenance"
+      ],
+      "properties": {
+        "inside_module": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "module_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "module_base": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^0x[0-9A-F]+$"
+        },
+        "module_size": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "module_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rva": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^0x[0-9A-F]+$"
+        },
+        "ambiguity": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "path",
+              "base"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "base": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^0x[0-9A-F]+$"
+              }
+            }
+          }
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "candidate",
+            "unknown",
+            "unsupported",
+            "invalidated"
+          ]
+        },
+        "provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "symbol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "has_symbol",
+        "symbol_name",
+        "symbol_offset",
+        "symbol_source"
+      ],
+      "properties": {
+        "has_symbol": {
+          "const": false
+        },
+        "symbol_name": {
+          "type": "null"
+        },
+        "symbol_offset": {
+          "type": "null"
+        },
+        "symbol_source": {
+          "const": "not_collected"
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mapped",
+        "base_address",
+        "end_address",
+        "region_size",
+        "allocation_base",
+        "state",
+        "type",
+        "protect_raw",
+        "protect_text",
+        "allocation_protect_raw",
+        "readable",
+        "writable",
+        "executable",
+        "guard",
+        "offset_from_region_base",
+        "offset_from_allocation_base",
+        "region_source",
+        "region_error",
+        "status",
+        "provenance"
+      ],
+      "properties": {
+        "mapped": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "base_address": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^0x[0-9A-F]+$"
+        },
+        "end_address": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^0x[0-9A-F]+$"
+        },
+        "region_size": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "allocation_base": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^0x[0-9A-F]+$"
+        },
+        "state": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "type": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "protect_raw": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "protect_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "allocation_protect_raw": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "readable": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "writable": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "executable": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "guard": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "offset_from_region_base": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "offset_from_allocation_base": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "region_source": {
+          "enum": [
+            "ce_region_api",
+            "enumerated_regions",
+            "unavailable"
+          ]
+        },
+        "region_error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "candidate",
+            "unknown",
+            "unsupported",
+            "invalidated"
+          ]
+        },
+        "provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "bytes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_length",
+        "read_length",
+        "hex",
+        "read_status",
+        "is_partial",
+        "address",
+        "status",
+        "provenance"
+      ],
+      "properties": {
+        "requested_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "read_length": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "hex": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9A-F]{2})( [0-9A-F]{2})*$"
+        },
+        "read_status": {
+          "enum": [
+            "read_ok",
+            "short_read",
+            "read_failed",
+            "unreadable"
+          ]
+        },
+        "is_partial": {
+          "type": "boolean"
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^0x[0-9A-F]+$"
+        },
+        "read_error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "candidate",
+            "unknown",
+            "unsupported",
+            "invalidated"
+          ]
+        },
+        "provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "instruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decode_status",
+        "length",
+        "prefixes",
+        "opcode",
+        "opcode_text",
+        "modrm",
+        "sib",
+        "displacement",
+        "operand_size",
+        "mnemonic",
+        "operands_text",
+        "rip_relative",
+        "status",
+        "reason",
+        "provenance"
+      ],
+      "properties": {
+        "decode_status": {
+          "enum": [
+            "decoded",
+            "unsupported",
+            "truncated",
+            "invalid"
+          ]
+        },
+        "length": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 15
+        },
+        "prefixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "opcode": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 255
+        },
+        "opcode_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "modrm": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 255
+        },
+        "sib": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 255
+        },
+        "displacement": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "operand_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 8,
+          "maximum": 128
+        },
+        "mnemonic": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operands_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rip_relative": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "candidate",
+            "unknown",
+            "unsupported",
+            "invalidated"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "memory_operand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "present",
+        "base_register",
+        "index_register",
+        "scale",
+        "displacement",
+        "rip_relative",
+        "absolute",
+        "expression_text",
+        "is_stack_reference",
+        "status",
+        "provenance"
+      ],
+      "properties": {
+        "present": {
+          "type": "boolean"
+        },
+        "base_register": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "index_register": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "enum": [
+            1,
+            2,
+            4,
+            8,
+            null
+          ]
+        },
+        "displacement": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rip_relative": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "absolute": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "expression_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "is_stack_reference": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "candidate",
+            "unknown",
+            "unsupported",
+            "invalidated"
+          ]
+        },
+        "provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "effective_address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effective_address",
+        "effective_address_status",
+        "reason",
+        "status",
+        "provenance"
+      ],
+      "properties": {
+        "effective_address": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^0x[0-9A-F]+$"
+        },
+        "effective_address_status": {
+          "enum": [
+            "resolved_static",
+            "resolved_rip_relative",
+            "requires_runtime_context",
+            "unsupported",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "candidate",
+            "unknown",
+            "unsupported",
+            "invalidated"
+          ]
+        },
+        "provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "type_advisory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suggested_type",
+        "category",
+        "confidence",
+        "status",
+        "reason",
+        "source",
+        "provenance"
+      ],
+      "properties": {
+        "suggested_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "Float",
+            "Double",
+            null
+          ]
+        },
+        "category": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "float",
+            "double",
+            null
+          ]
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low",
+            "none"
+          ]
+        },
+        "status": {
+          "enum": [
+            "candidate",
+            "not_applicable",
+            "unsupported",
+            "unknown",
+            "invalidated"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "const": "decoder"
+        },
+        "provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule",
+          "severity",
+          "status",
+          "summary",
+          "provenance"
+        ],
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "status": {
+            "enum": [
+              "observed",
+              "candidate",
+              "unknown",
+              "unsupported",
+              "invalidated"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_addresses",
+        "max_bytes",
+        "bytes_requested",
+        "bytes_read",
+        "regions_enumerated",
+        "truncated",
+        "persistent_timers",
+        "runtime_breakpoints",
+        "memory_writes"
+      ],
+      "properties": {
+        "max_addresses": {
+          "const": 1
+        },
+        "max_bytes": {
+          "const": 64
+        },
+        "bytes_requested": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bytes_read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regions_enumerated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "persistent_timers": {
+          "const": 0
+        },
+        "runtime_breakpoints": {
+          "const": 0
+        },
+        "memory_writes": {
+          "const": 0
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "required": [
+              "resolution_status"
+            ],
+            "properties": {
+              "resolution_status": {
+                "const": "resolved"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "query": {
+            "properties": {
+              "resolved_address": {
+                "type": "string",
+                "pattern": "^0x[0-9A-F]+$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "required": [
+              "resolution_status"
+            ],
+            "properties": {
+              "resolution_status": {
+                "not": {
+                  "const": "resolved"
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "query": {
+            "properties": {
+              "resolved_address": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "bytes"
+        ],
+        "properties": {
+          "bytes": {
+            "required": [
+              "read_status"
+            ],
+            "properties": {
+              "read_status": {
+                "const": "read_ok"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "bytes": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "observed",
+                  "invalidated"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "instruction"
+        ],
+        "properties": {
+          "instruction": {
+            "required": [
+              "decode_status"
+            ],
+            "properties": {
+              "decode_status": {
+                "const": "decoded"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "instruction": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "observed",
+                  "invalidated"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "instruction"
+        ],
+        "properties": {
+          "instruction": {
+            "required": [
+              "decode_status"
+            ],
+            "properties": {
+              "decode_status": {
+                "const": "unsupported"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "instruction": {
+            "properties": {
+              "status": {
+                "const": "unsupported"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "type_advisory"
+        ],
+        "properties": {
+          "type_advisory": {
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "candidate"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "type_advisory": {
+            "properties": {
+              "suggested_type": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "module"
+        ],
+        "properties": {
+          "module": {
+            "required": [
+              "inside_module"
+            ],
+            "properties": {
+              "inside_module": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "module": {
+            "properties": {
+              "module_name": {
+                "type": "string"
+              },
+              "rva": {
+                "type": "string",
+                "pattern": "^0x[0-9A-F]+$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "region"
+        ],
+        "properties": {
+          "region": {
+            "required": [
+              "mapped"
+            ],
+            "properties": {
+              "mapped": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "region": {
+            "properties": {
+              "base_address": {
+                "type": "string",
+                "pattern": "^0x[0-9A-F]+$"
+              },
+              "region_size": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "memory_operand"
+        ],
+        "properties": {
+          "memory_operand": {
+            "required": [
+              "present"
+            ],
+            "properties": {
+              "present": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "memory_operand": {
+            "properties": {
+              "expression_text": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "effective_address"
+        ],
+        "properties": {
+          "effective_address": {
+            "required": [
+              "effective_address_status"
+            ],
+            "properties": {
+              "effective_address_status": {
+                "enum": [
+                  "resolved_static",
+                  "resolved_rip_relative"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "effective_address": {
+            "properties": {
+              "effective_address": {
+                "type": "string",
+                "pattern": "^0x[0-9A-F]+$"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

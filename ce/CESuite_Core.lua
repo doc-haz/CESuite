@@ -12,7 +12,8 @@ local ModuleDump=require('moduledump')
 local LuaStatic=require('luastatic')
 local Diagnose=require('diagnose')
 local SimpleReport=require('simplereport')
-local Core={identity='CESuiteCore',version='0.2.1',schema_version='0.1',status='stopped',state=Life.new()}
+local Address=require('address')
+local Core={identity='CESuiteCore',version='0.2.2',schema_version='0.1',status='stopped',state=Life.new()}
 local function collectReport(mode)
   local r={schema_version=Core.schema_version,core_version='0.1.9',
     generated_at=os.date('!%Y-%m-%dT%H:%M:%SZ'),mode=mode,observation_only=true,
@@ -228,12 +229,38 @@ function Core.exportReports(path,options)
       retained_backups=retained>0 and retained or nil}
   end)
 end
+-- Address evidence: explicit, read-only inspection of one address. It is never
+-- called from collectReport() and never writes memory or sets breakpoints.
+function Core.inspectAddress(input,options)
+  return Core.state.run(function()
+    local evidence=Address.inspect(api,input,options)
+    Core.last_address_evidence=evidence
+    return evidence
+  end)
+end
+function Core.exportAddressEvidence(evidence,path)
+  assert(type(evidence)=='table','Address evidence required')
+  assert(type(path)=='string' and path~='','Choose a destination')
+  return Core.state.run(function()
+    return Export.write(evidence,path)
+  end)
+end
 function Core.listDumpModules()
   assert(not Core.state.busy,'CESuite is busy')
   return ModuleDump.list(api)
 end
 function Core.dumpModule(name,path,options) return Core.state.run(function() return ModuleDump.write(api,name,path,options) end) end
-function Core.shutdown() Core.state.shutdown();Core.viewer=nil;Core.memo=nil;Core.status='stopped' end
+function Core.shutdown()
+  -- Stop the one-shot icon refresh before the menu items disappear.
+  if Core.icon_timer then
+    pcall(function() Core.icon_timer.Enabled=false end)
+    pcall(function() Core.icon_timer.destroy() end)
+    Core.icon_timer=nil
+  end
+  Core.state.shutdown()
+  Core.viewer=nil;Core.memo=nil;Core.status='stopped'
+  Core.address_form=nil;Core.address_edit=nil;Core.address_memo=nil;Core.address_refresh=nil
+end
 function Core.showReport(report) return UI.showReport(Core,api,report) end
 function Core.showText(text) return UI.showText(Core,api,text) end
 function Core.install()

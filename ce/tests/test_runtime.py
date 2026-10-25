@@ -265,7 +265,10 @@ class RuntimeContractTests(unittest.TestCase):
     def test_runtime_has_no_target_write_or_network_calls(self):
         # Defense-in-depth allowlist regression, not a formal security proof.
         import re
-        source = builder.bundle() + '\n'.join(builder.autorun_files().values())
+        texts = [value.decode('utf-8', errors='ignore')
+                 for name, value in builder.autorun_files().items()
+                 if name.endswith(('.lua', '.md')) or name == 'LICENSE']
+        source = builder.bundle() + '\n'.join(texts)
         for forbidden in ['autoAssemble', 'autoAssembleCheck', 'writeBytes', 'writeInteger',
                           'allocateMemory', 'deAlloc', 'openProcess', 'getInternet',
                           'getAddress', 'getAddressSafe', 'loadstring', 'shellExecute']:
@@ -287,8 +290,8 @@ class RuntimeContractTests(unittest.TestCase):
                 self.assertEqual(set(archive.namelist()), expected)
                 self.assertEqual(len(archive.namelist()), len(expected))
                 for path, source in builder.autorun_files().items():
-                    self.assertEqual(archive.read(path).decode('utf-8'), source)
-                    self.assertNotIn('@VERSION@', source)
+                    self.assertEqual(archive.read(path), source)
+                    self.assertNotIn(b'@VERSION@', source)
             self.assertEqual((output / 'CESuite_Core.CT').read_bytes(),
                              (output / f'CESuite_Core_v{builder.version()}.CT').read_bytes())
 
