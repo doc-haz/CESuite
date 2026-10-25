@@ -213,7 +213,7 @@ JSON are exactly the data the Simple Report renders.
 - Existing reports (including v0.1.4) still validate against the extended schema.
 - Schema conditionals reject any attempt to label static or lexical evidence as a
   runtime observation.
-- The Address Evidence Inspector (0.2.2) is a separate, explicitly invoked report
+- The Address Evidence Inspector (0.2.3) is a separate, explicitly invoked report
   with its own schema; it does not add fields to the runtime report or to the
   Simple/Extensive reports.
 
@@ -227,3 +227,11 @@ JSON are exactly the data the Simple Report renders.
 - Static Lua analysis never executes Lua and cannot see computed patterns.
 - A missing signature does not prove a feature was removed, and an ambiguous
   signature does not identify the correct match.
+
+## Operation metadata (0.2.3)
+
+Runtime and static Lua reports may include an optional operation block with
+status, source_complete, partial, cancelled, structured warnings and nullable
+metrics. It is separate from evidence diagnostics and never affects them. See
+[performance-diagnostics.md](performance-diagnostics.md) for the exact metrics,
+semantics and clock limitations.

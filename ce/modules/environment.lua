@@ -15,11 +15,25 @@ function M.capture(api, report)
   local x64=U.call(api,'targetIs64Bit')
   if type(x64)=='boolean' then target.architecture=x64 and 'x64' or 'x86' end
   local modules, failure=U.call(api,'enumModules')
-  if type(modules)~='table' then U.warn(report,'MODULES-UNAVAILABLE',failure or 'Module enumeration failed'); return end
+  if type(modules)~='table' then
+    -- A cached PID without a provable module inventory is not a live target.
+    report.target.attached=false
+    report.target.name=U.null
+    U.warn(report,'MODULES-UNAVAILABLE',failure or 'Module enumeration failed')
+    return
+  end
   -- Resolve the exact same name/path candidate set used by AOB bounds.
   for _,m in ipairs(modules) do
     table.insert(report.modules,{name=m.Name or U.null,base=U.hex(m.Address),size=U.null,
       path=m.PathToFile or U.null,architecture=m.Is64Bit==nil and 'unknown' or (m.Is64Bit and 'x64' or 'x86')})
+  end
+  if #report.modules==0 then
+    -- Cheat Engine can retain a stale PID after the target exits. An empty
+    -- module inventory cannot prove a live target, so fail closed.
+    report.target.attached=false
+    report.target.name=U.null
+    U.warn(report,'PROCESS-UNAVAILABLE','No live target: the module inventory is empty.')
+    return
   end
   for i,m in ipairs(modules) do
     local candidate,reason=U.moduleMatch(m.Name,report.modules)

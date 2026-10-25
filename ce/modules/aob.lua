@@ -86,6 +86,7 @@ function M.hooks(a,script)
 end
 function M.validate(api,report,context)
   local scripts,providers={},{}
+  local attempted,completed,truncated=0,0,false
   for _,s in ipairs(report.scripts) do scripts[s.id]=s end
   for _,a in ipairs(report.aobs) do
     local key=a.script_id..':'..a.symbol:lower()
@@ -106,6 +107,7 @@ function M.validate(api,report,context)
         protection_flags='*X*C*W',alignment='none',method='MemScan/FoundList',
         stop_semantics='CE firstScan stop argument; same bounds as AA',error_visibility='unknown'}
       local ms,fl
+      attempted=attempted+1
       local ok,err=xpcall(function()
         ms=assert(api.createMemScan(),'createMemScan failed')
         ms.OnlyOneResult=false
@@ -131,6 +133,8 @@ function M.validate(api,report,context)
         end
         a.status='observed'
         a.uniqueness=count==1 and 'unique_current_scan' or (count==0 and 'no_match' or 'multiple_matches')
+        completed=completed+1
+        if a.matches_truncated then truncated=true end
         if a.scan.error_visibility=='unavailable' then
           a.uniqueness='unverified'
           U.warn(report,'SCAN-ERROR-VISIBILITY','CE does not expose scan ErrorString; count is retained but uniqueness is unverified.',a.script_id,a.line)
@@ -153,5 +157,6 @@ function M.validate(api,report,context)
       end
     end
   end
+  return {attempted=attempted,completed=completed,truncated=truncated}
 end
 return M

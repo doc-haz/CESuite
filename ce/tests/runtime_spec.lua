@@ -7,6 +7,9 @@ if CESUITE_TEST_OUTPUT then
     if format=='!%Y-%m-%dT%H:%M:%SZ' then return '2026-10-22T00:00:00Z' end
     return realDate(format,...)
   end
+  -- Fixture generation must be byte-reproducible: operational durations are
+  -- non-deterministic in live use, so freeze the clock only in this mode.
+  getTickCount=function() return 0 end
 end
 
 local U=require('util')
@@ -80,7 +83,44 @@ test('P0-04 metadata leaves existing report semantics unchanged',function()
   for _,row in ipairs(normal.dependencies) do eq(row.status,'unverified') end
   normal.semantics_profile=nil
   normal.generated_at=without.generated_at;normal.completed_at=without.completed_at
+  -- Timings are non-deterministic operational metadata; compare evidence only.
+  normal.operation=nil;without.operation=nil
   eq(E.encode(normal),E.encode(without))
+end)
+
+test('operation telemetry is separated and never changes evidence',function()
+  local api={getOpenedProcessID=function() return 0 end,vtAutoAssembler=11,
+    getAddressList=function() return {Count=1,getMemoryRecord=function()
+      return {ID=1,Type=11,OffsetCount=0,Script='[ENABLE]\nalloc(buffer,16)\n[DISABLE]\ndealloc(buffer)'}
+    end} end}
+  local function load()
+    return assert(loadfile('ce/CESuite_Core.lua','t',
+      setmetatable({api=api,require=require},{__index=_G})))()
+  end
+  local instrumented=load().analyze('table')
+  assert(instrumented.operation,'operation block missing')
+  eq(instrumented.operation.provenance,'instrumented')
+  eq(instrumented.operation.cancelled,false)
+  eq(instrumented.operation.metrics.items_total,0)
+  assert(type(instrumented.operation.metrics.parse_ms)=='number' and
+    instrumented.operation.metrics.parse_ms>=0,'parse_ms must be non-negative')
+  assert(type(instrumented.operation.metrics.scan_ms)=='number' and
+    instrumented.operation.metrics.scan_ms>=0,'scan_ms must be non-negative')
+  eq(instrumented.operation.source_complete,false,'no live target means incomplete source')
+  assert(type(instrumented.operation.metrics.source_bytes)=='number' and
+    instrumented.operation.metrics.source_bytes>0,'source_bytes expected')
+  -- With no clock the report keeps identical evidence and null timings.
+  local savedGet,savedClock=getTickCount,os.clock
+  getTickCount=nil
+  os.clock=function() error('clock unavailable') end
+  local degraded=load().analyze('table')
+  getTickCount,os.clock=savedGet,savedClock
+  eq(degraded.operation.metrics.parse_ms,U.null)
+  eq(degraded.operation.timing_source,'unavailable')
+  instrumented.operation=nil;degraded.operation=nil
+  instrumented.generated_at=degraded.generated_at
+  instrumented.completed_at=degraded.completed_at
+  eq(E.encode(instrumented),E.encode(degraded))
 end)
 
 local function report(source)

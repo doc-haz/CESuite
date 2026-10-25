@@ -214,8 +214,13 @@ class AssessmentContractTests(unittest.TestCase):
         self.assertEqual(self.simple_one, self.simple_two)
         self.assertEqual(self.extensive_one['assessment'], self.extensive_two['assessment'])
         self.assertEqual(self.extensive_one['core_version'], '0.1.9')
-        self.assertEqual(self.extensive_one['static_lua_analysis']['suite_version'], '0.2.2')
+        self.assertEqual(self.extensive_one['static_lua_analysis']['suite_version'], '0.2.3')
         self.assertEqual(self.extensive_one['schema_version'], '0.1')
+        operation = self.extensive_one['operation']
+        self.assertEqual(operation['status'], 'complete')
+        self.assertFalse(operation['cancelled'])
+        self.assertIsInstance(operation['metrics']['duration_ms'], (int, float))
+        self.assertGreaterEqual(operation['metrics']['duration_ms'], 0)
 
     def test_legacy_reports_still_validate(self):
         legacy = json.loads((ROOT / 'fixtures/runtime-v0.1.4.json').read_text(encoding='utf-8'))

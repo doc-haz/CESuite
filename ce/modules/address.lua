@@ -641,7 +641,7 @@ function M.inspect(api, input, options)
     schema_version='0.1',
     title='CESuite Address Evidence',
     core_version='0.1.9',
-    suite_version='0.2.2',
+    suite_version='0.2.3',
     generated_at=started,
     completed_at=completed,
     observation_only=true,

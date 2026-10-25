@@ -55,7 +55,8 @@ class StaticLuaReportSchemaTests(unittest.TestCase):
             getOpenedProcessID = function() return {pid} end
             getCEVersion = function() return 7.5 end
             targetIs64Bit = function() return true end
-            enumModules = function() return {{}} end
+            enumModules = function() return {{{{Name='test_game.exe',Address=0x1000,PathToFile='C:/g/test_game.exe',Is64Bit=true}}}} end
+            getModuleSize = function(name) return 0x1000 end
             vtAutoAssembler = 11
             process = {pname}
             getAddressList = function()

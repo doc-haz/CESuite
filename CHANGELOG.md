@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.3 - Performance & Operation Diagnostics
+
+- **Separate Operation Metadata**: runtime and static Lua reports may carry an optional `operation` block with `status` (`complete`, `partial`, `cancelled`, `failed`, `unavailable`), `source_complete`, `partial`, `cancelled`, structured `warnings` and metrics. Evidence statuses are unchanged and remain independent.
+- **Reliable Metrics Only**: `duration_ms`, `parse_ms`, `scan_ms`, `export_ms`, `serialize_ms`, `write_ms`, `source_bytes`, `export_bytes`, `items_processed`, `items_total`, `operations_attempted`, `operations_completed`. Metrics are nullable; no invented numbers. Timings are decimal milliseconds.
+- **Clock**: `getTickCount()` (millisecond tick count, wrap-safe) is preferred; `os.clock()` CPU time is a documented fallback marked `TIMING_APPROXIMATE`. No UTC timestamp arithmetic.
+- **Fail-Open Telemetry**: a missing clock or metric yields `null` plus `TIMING_UNAVAILABLE`; analysis, validation, export and Address Evidence never fail because of telemetry.
+- **Source Completeness**: `source_complete` is true only when the live target and every planned scan/source unit were traversed; cancellation, truncation, bounded limits, target changes and unavailable runtime evidence clear it.
+- **Export Timing**: `Core.last_export_operation` and the paired export result expose `export_ms`/`serialize_ms`/`write_ms`/`export_bytes`; the timing is deliberately not written into the document it measures (that would be circular).
+- **Operation Summary**: Diagnostics Summary appends an informative Operation Summary. No FAST/SLOW/GOOD/BAD verdicts are produced.
+- **Detached Completeness Hotfix**: a cached PID with an empty module inventory no longer counts as a live target. `source_complete` also requires `items_processed = items_total` (or zero planned items), so a detached run with 7 planned AOBs and 0 completed can never report `complete`/`source_complete=true`; it reports `unavailable` with `RUNTIME_SOURCE_UNAVAILABLE`.
+- **Address Evidence**: remains a pure evidence document without an `operation` block.
+- **Tests**: 371 passing checks (Lua runtime, operations, diagnostic assessment, address evidence, module dump, distribution, parser parity, static Lua parity, static Lua, assessment and address-evidence schemas, Python contracts), 0 failures, 0 unexpected skips.
+- **Compatibility**: additive. Existing schemas, APIs, menu names and report fields remain valid; `core_version` stays `0.1.9`.
+
 ## 0.2.2 - Address Evidence Inspector
 
 - **Explicit Address Inspection**: `Core.inspectAddress(input, options)` collects read-only evidence for one address. It is never called from `collectReport()` and never writes memory, sets breakpoints or installs hooks.

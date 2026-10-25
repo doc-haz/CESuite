@@ -566,6 +566,9 @@
     },
     "assessment": {
       "$ref": "#/$defs/assessment"
+    },
+    "operation": {
+      "$ref": "#/$defs/operation"
     }
   },
   "allOf": [
@@ -612,6 +615,177 @@
     }
   ],
   "$defs": {
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "source_complete",
+        "partial",
+        "cancelled",
+        "stage",
+        "provenance",
+        "timing_source",
+        "warnings",
+        "metrics"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "cancelled",
+            "failed",
+            "unavailable"
+          ]
+        },
+        "source_complete": {
+          "type": "boolean"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "cancelled": {
+          "type": "boolean"
+        },
+        "stage": {
+          "type": "string"
+        },
+        "provenance": {
+          "type": "string"
+        },
+        "timing_source": {
+          "type": "string"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message",
+              "stage"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "stage": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "duration_ms",
+            "parse_ms",
+            "scan_ms",
+            "export_ms",
+            "serialize_ms",
+            "write_ms",
+            "source_bytes",
+            "export_bytes",
+            "items_processed",
+            "items_total",
+            "operations_attempted",
+            "operations_completed"
+          ],
+          "properties": {
+            "duration_ms": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "parse_ms": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "scan_ms": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "export_ms": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "serialize_ms": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "write_ms": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "source_bytes": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "export_bytes": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items_processed": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "items_total": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "operations_attempted": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "operations_completed": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
     "dependency": {
       "type": "object",
       "additionalProperties": false,

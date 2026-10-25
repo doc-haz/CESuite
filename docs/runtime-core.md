@@ -206,13 +206,13 @@ Markdown report in the viewer, and `Export Reports` writes
 (`CESuite_Runtime_Report.json`, `CESuite_Runtime_Report_enriched.json`) are
 unchanged.
 
-## Address evidence (0.2.2)
+## Address evidence (0.2.3)
 
 `Core.inspectAddress(input, options)` collects read-only evidence for one explicit
 address and `Core.exportAddressEvidence(evidence, path)` serializes it against
 `schemas/address-evidence.schema.json`. It is never called from `collectReport()`:
 the runtime report, the assessment and the static Lua block are unchanged.
-`core_version` stays `0.1.9`; `suite_version` is `0.2.2`. Accepted input is hex,
+`core_version` stays `0.1.9`; `suite_version` is `0.2.3`. Accepted input is hex,
 `module+RVA` or a numeric Memory Viewer selection; CE expressions are not evaluated.
 Bounds are declared in the evidence (`1` address, `64` bytes, no timers, no
 breakpoints, no writes). Details: [address-evidence.md](address-evidence.md).
@@ -301,3 +301,7 @@ the previously missing dependency was provisioned under DG authorization. The
 technical P0-05/P0-06/P0-07 gates are closed by DIESEL reaudit. Current automated
 results and separately reported live evidence are in [p0-closure.md](p0-closure.md)
 and [live-0.1.9.md](validation/live-0.1.9.md). No release is published by this mission.
+
+Diagnostics Summary appends an informative Operation Summary with timings,
+source completeness and warnings. Performance metadata is not a correctness
+verdict; see [performance-diagnostics.md](performance-diagnostics.md).

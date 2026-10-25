@@ -34,4 +34,22 @@ function M.write(report,path)
   assert(ok,failure);assert(closed,closeError)
   return path
 end
+-- Timing is operational metadata: it never changes the encoded bytes or the
+-- write behavior. serialize_ms and write_ms are measured separately.
+function M.writeTimed(report,path)
+  local Ops=require('operations')
+  local started=Ops.begin()
+  local serializeStart=Ops.begin()
+  local encoded=M.encode(report)..'\n'
+  local serializeMs=Ops.elapsed(serializeStart)
+  local writeStart=Ops.begin()
+  local f,err=io.open(path,'wb');assert(f,err)
+  local ok,failure=f:write(encoded)
+  local closed,closeError=f:close()
+  assert(ok,failure);assert(closed,closeError)
+  local writeMs=Ops.elapsed(writeStart)
+  local totalMs=Ops.elapsed(started)
+  return path,{ok=true,bytes=#encoded,serialize_ms=serializeMs,
+    write_ms=writeMs,total_ms=totalMs}
+end
 return M

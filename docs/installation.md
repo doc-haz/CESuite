@@ -1,4 +1,4 @@
-# CESuite 0.2.2 installation
+# CESuite 0.2.3 installation
 
 Choose either mode. Both run locally without Python, GitHub, network access,
 credentials or tokens.
@@ -12,7 +12,7 @@ is used below; adjust it to your own Cheat Engine version and path.
 
 1. Close Cheat Engine. Back up any previous `CESuite_Autorun.lua` and `cesuite`
    folder before upgrading. Do not mix modules from different versions.
-2. Extract **the contents** of `CESuite_Autorun_v0.2.2.zip` directly into
+2. Extract **the contents** of `CESuite_Autorun_v0.2.3.zip` directly into
    `C:\Program Files\Cheat Engine\autorun\`.
 3. Verify these exact locations; do not add another `autorun` or ZIP-name folder:
 
@@ -35,6 +35,7 @@ is used below; adjust it to your own Cheat Engine version and path.
        |-- luanames.lua
        |-- luastatic.lua
        |-- moduledump.lua
+       |-- operations.lua
        |-- parser.lua
        |-- semantics.lua
        |-- simplereport.lua
@@ -63,12 +64,12 @@ and do not publish a partially loaded singleton. Correct the package and restart
 To uninstall, close CE and remove only `autorun\CESuite_Autorun.lua`, `autorun\LICENSE` and
 `autorun\cesuite\`. **Remove CESuite Menu** hides it for the current session;
 the next CE start loads it again. To roll back to a previous release (such as v0.1.9.1),
-close CE, remove the v0.2.2 autorun files, and restore the previous `CESuite_Autorun_v0.1.9.1.zip`
+close CE, remove the v0.2.3 autorun files, and restore the previous `CESuite_Autorun_v0.1.9.1.zip`
 package or backed-up files.
 
 ## Portable CT
 
-Open `CESuite_Core_v0.2.2.CT` and allow this Core's table Lua. The existing
+Open `CESuite_Core_v0.2.3.CT` and allow this Core's table Lua. The existing
 `releases/CESuite_Core.CT` remains an identical unversioned compatibility path.
 The CT is self-contained and does not need the ZIP. Load it before your target CT,
 because opening a CT can replace CE's current address list. For an existing table,
@@ -125,7 +126,7 @@ candidate built and checked for this mission, not a historical package:
 ```powershell
 $ceAutorun = 'C:\Program Files\Cheat Engine\autorun'
 $ceBackup = Join-Path 'C:\CESuiteBackup' ('CE-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
-$cePackage = 'C:\CESuiteBackup\CESuite_Autorun_v0.2.2.zip'
+$cePackage = 'C:\CESuiteBackup\CESuite_Autorun_v0.2.3.zip'
 $ceOldTree = Join-Path $ceAutorun 'cesuite'
 $ceOldLoader = Join-Path $ceAutorun 'CESuite_Autorun.lua'
 if (-not (Test-Path -LiteralPath $cePackage)) { throw 'Package missing' }
@@ -170,11 +171,11 @@ foreach ($ceRelative in $ceExpected) {
 }
 ```
 
-Restart CE (mandatory). About CESuite must report **0.2.2**, **ready**, **autorun**,
+Restart CE (mandatory). About CESuite must report **0.2.3**, **ready**, **autorun**,
 with exactly one CESuite menu. In CE's Lua console:
 
 ```lua
-assert(CESuiteCore and CESuiteCore.version=='0.2.2')
+assert(CESuiteCore and CESuiteCore.version=='0.2.3')
 assert(CESuiteCore.status=='ready' and CESuiteCore.distribution=='autorun')
 print(CESuiteCore.version, CESuiteCore.status, CESuiteCore.distribution)
 ```

@@ -417,6 +417,10 @@ test('Core.exportReports refuses silent overwrite and honours decline/confirm',f
 
   local declined=core.exportReports(base,{confirmOverwrite=function() return false end})
   eq(declined.status,'cancelled')
+  assert(declined.operation,'cancelled export must carry operation metadata')
+  eq(declined.operation.status,'cancelled')
+  eq(declined.operation.cancelled,true)
+  eq(declined.operation.source_complete,false)
   local g=assert(io.open(first.simple,'rb'));local after=g:read('*a');g:close()
   eq(after,before,'declined overwrite must keep the previous report')
 
@@ -440,9 +444,9 @@ test('Core.simpleText renders the same assessment that the extensive report embe
   os.remove(result.simple);os.remove(result.extensive)
 end)
 
-test('Core.version is 0.2.2 and assessment schema version is stable',function()
+test('Core.version is 0.2.3 and assessment schema version is stable',function()
   local core=loadCore(mockApi({}))
-  eq(core.version,'0.2.2')
+  eq(core.version,'0.2.3')
   local a=core.buildAssessment({target={attached=false},aobs=U.array(),scripts=U.array(),
     dependencies=U.array(),diagnostics=U.array()})
   eq(a.schema_version,'0.1')
@@ -492,7 +496,57 @@ test('paired export writes both reports and leaves no temporaries',function()
   assert(mdStamp and jsonStamp,'expected timestamps in both reports')
   eq(mdStamp,jsonStamp,'both reports must come from one collection')
   assert(extensive:find('"assessment"',1,true),'assessment missing')
+  assert(result.operation,'export operation metadata missing')
+  eq(result.operation.status,'complete')
+  eq(result.operation.source_complete,true)
+  eq(result.operation.cancelled,false)
+  assert(type(result.operation.metrics.export_ms)=='number' and
+    result.operation.metrics.export_ms>=0,'export_ms must be a non-negative number')
+  assert(type(result.operation.metrics.export_bytes)=='number' and
+    result.operation.metrics.export_bytes>0,'export_bytes must be positive')
   os.remove(result.simple);os.remove(result.extensive)
+end)
+
+test('static Lua analysis carries its own operation block',function()
+  local core=loadCore(mockApi({}))
+  local r=core.analyzeStaticLua()
+  assert(r.operation,'static operation metadata missing')
+  eq(r.operation.stage,'static_lua')
+  eq(r.operation.cancelled,false)
+  assert(type(r.operation.metrics.parse_ms)=='number' or r.operation.metrics.parse_ms==U.null)
+  assert(type(r.operation.metrics.items_total)=='number')
+end)
+
+test('stale target with planned AOBs is never complete or source-complete',function()
+  local api=mockApi({})
+  api.enumModules=function() return {} end
+  api.getAddressList=function()
+    local records={}
+    for i=1,7 do
+      records[i]={ID=i,Description='r'..i,Type=11,OffsetCount=0,Active=false,
+        Script='[ENABLE]\naobscan(a'..i..',90)\n[DISABLE]\n'}
+    end
+    return {Count=7,LoadedTableVersion=45,getMemoryRecord=function(i)
+      return records[i+1]
+    end}
+  end
+  local core=loadCore(api)
+  local r=core.analyze('validate')
+  eq(r.target.attached,false,'stale PID with no modules must be detached')
+  eq(#r.modules,0)
+  eq(#r.aobs,7)
+  eq(r.operation.metrics.items_total,7)
+  eq(r.operation.metrics.items_processed,0)
+  eq(r.operation.source_complete,false)
+  assert(r.operation.status~='complete','detached operation must not be complete')
+  local found=false
+  for _,w in ipairs(r.operation.warnings) do
+    if w.code=='RUNTIME_SOURCE_UNAVAILABLE' then found=true end
+  end
+  assert(found,'RUNTIME_SOURCE_UNAVAILABLE warning expected')
+  assert(not (r.operation.source_complete and
+    r.operation.metrics.items_processed<r.operation.metrics.items_total),
+    '0/7 items cannot coexist with source_complete=true')
 end)
 
 test('simple write failure leaves no report and releases busy',function()
@@ -500,6 +554,8 @@ test('simple write failure leaves no report and releases busy',function()
   local base=os.tmpname()..'-missing-directory/report'
   local result=core.exportReports(base)
   eq(result.status,'failed')
+  assert(result.operation,'failed export must carry operation metadata')
+  eq(result.operation.status,'failed')
   assert(result.error and result.error:find('simple',1,true),'error must name the failing document')
   assert(not exists(base..'_Simple.md') and not exists(base..'_Extensive.json'),'no output expected')
   eq(core.state.busy,false)
@@ -508,7 +564,7 @@ end)
 test('extensive failure after the simple document was written leaves no partial output',function()
   local core=loadCore(mockApi({}))
   local base=os.tmpname()..'-extfail'
-  withStub(Export,'write',function() return nil,'synthetic extensive failure' end,function()
+  withStub(Export,'writeTimed',function() return nil,'synthetic extensive failure' end,function()
     local result=core.exportReports(base)
     eq(result.status,'failed')
     assert(result.error and result.error:find('extensive',1,true),'error must name the failing document')
@@ -522,7 +578,7 @@ end)
 test('extensive write raising an error is handled as a controlled failure',function()
   local core=loadCore(mockApi({}))
   local base=os.tmpname()..'-throw'
-  withStub(Export,'write',function() error('synthetic disk full') end,function()
+  withStub(Export,'writeTimed',function() error('synthetic disk full') end,function()
     local result=core.exportReports(base)
     eq(result.status,'failed')
     assert(result.error and result.error:find('disk full',1,true),'underlying error must be reported')
@@ -536,7 +592,7 @@ test('failed export preserves the previous pair byte for byte',function()
   local base=os.tmpname()..'-preserve'
   writeFile(base..'_Simple.md','OLD SIMPLE')
   writeFile(base..'_Extensive.json','OLD EXTENSIVE')
-  withStub(Export,'write',function() return nil,'synthetic failure' end,function()
+  withStub(Export,'writeTimed',function() return nil,'synthetic failure' end,function()
     local result=core.exportReports(base,{confirmOverwrite=function(files)
       eq(#files,2,'both existing reports must be offered for confirmation')
       return true

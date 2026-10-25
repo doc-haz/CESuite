@@ -318,7 +318,7 @@ function M.install(Core,api)
 
   command('Diagnostics Summary',function()
     local text=Core.simpleText()
-    Core.showText(text)
+    Core.showText(text..Core.operationText())
   end)
 
   separator()
