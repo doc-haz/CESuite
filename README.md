@@ -44,8 +44,8 @@ The local freeze suite is 542 checks.
 ## User-facing actions
 
 Under the **CESuite** menu in Cheat Engine's main form. Commands are grouped with
-real menu separators in five blocks: inspection, analysis, export, maintenance and
-about. `About CESuite` is always the last item. Commands reuse a small, semantic
+real menu separators in six areas: inspection, analysis, evidence snapshots,
+export, maintenance and about. `About CESuite` is always the last item. Commands reuse a small, semantic
 mapping of Cheat Engine's own native menu icons (validated only for CE 7.72); the
 host `ImageList` is never modified or replaced, and unknown versions keep the menu
 text-only.
@@ -59,6 +59,9 @@ text-only.
 | **Address Evidence Inspector** | Read-only evidence for one explicit address: resolution, module/RVA, region and protection, bounded bytes, a conservative instruction decode, operand/effective-address evidence and a type advisory. No breakpoints, writes or expression evaluation. |
 | **Dependency Summary** | Grouped lexical dependency occurrences, preserving raw evidence; not a resolved runtime dependency graph. |
 | **Diagnostics Summary** | Derives the diagnostic assessment from one fresh collection and shows the readable Simple Report (Markdown) in the viewer. No files are written. |
+| **Evidence Snapshots → Capture Snapshot...** | Captures the evidence CESuite currently observes, asks for a destination and writes a bounded, versioned JSON snapshot. It does not modify the table, target or records. |
+| **Evidence Snapshots → Open Snapshot...** | Opens a validated snapshot in a read-only, sectioned memo. Invalid, oversized or unsupported snapshots fail with a clear error. |
+| **Evidence Snapshots → Compare Snapshots...** | Compares two snapshots and shows neutral evidence changes (unchanged, added, removed, changed, unknown, not comparable). It does not repair or declare compatibility. |
 | **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, external tooling or later analysis. You choose where to save it; nothing is uploaded. |
 | **Export Reports** | Writes `<base>_Simple.md` and `<base>_Extensive.json` from the same collection. The extensive report contains runtime evidence, static Lua evidence and the structured assessment. Existing files need explicit overwrite confirmation. |
 | **Export Module Dump** | A loaded PE module in mapped-image layout, plus JSON metadata, progress, cancellation and backup-preserving overwrite confirmation. |
@@ -178,7 +181,7 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 
 Automated regression test results:
 
-- **476 passing checks**
+- **542 passing checks**
 - **0 skips**
 - **0 failures**
 
