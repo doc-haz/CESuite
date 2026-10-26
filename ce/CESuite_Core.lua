@@ -15,8 +15,11 @@ local SimpleReport=require('simplereport')
 local Address=require('address')
 local Dynamic=require('dynamic')
 local Coverage=require('coverage')
+local Snapshot=require('snapshot')
+local SnapshotStore=require('snapshotstore')
+local SnapshotUI=require('snapshotui')
 local Operations=require('operations')
-local Core={identity='CESuiteCore',version='0.3.0',schema_version='0.1',status='stopped',state=Life.new()}
+local Core={identity='CESuiteCore',version='0.3.1',schema_version='0.1',status='stopped',state=Life.new()}
 local function tableHelpers()
   local helpers=U.array()
   local function add(name,alias)
@@ -186,7 +189,38 @@ function Core.analyzeStaticLua(options)
     return staticReport
   end)
 end
--- Explicit static Lua report export (0.3.0-dev). Analysis is read-only text.
+-- Explicit static Lua report export (0.3.1). Analysis is read-only text.
+-- Evidence snapshots are explicit user actions. Capture is read-only and
+-- storage is delegated to the bounded snapshotstore module.
+function Core.captureSnapshot(options)
+  options=options or {}
+  local report=Core.analyze('table')
+  local opts={created_at=options.created_at,include_pid=options.include_pid,
+    suite_version=Core.version,core_version='0.1.9',
+    address_evidence=options.address_evidence}
+  return Snapshot.capture(report,opts)
+end
+
+function Core.writeSnapshot(snapshot,path,options)
+  return SnapshotStore.write(snapshot,path,options)
+end
+
+function Core.readSnapshot(path,options)
+  return SnapshotStore.read(path,options)
+end
+
+function Core.compareSnapshots(a,b)
+  return Snapshot.compare(a,b)
+end
+
+function Core.renderSnapshot(snapshot)
+  return SnapshotUI.render(snapshot)
+end
+
+function Core.renderSnapshotDiff(diff)
+  return SnapshotUI.renderDiff(diff)
+end
+
 function Core.exportStaticLuaReport(path,options)
   assert(type(path)=='string' and path~='','Choose a destination')
   local report=Core.analyzeStaticLua(options)

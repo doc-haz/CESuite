@@ -1386,7 +1386,7 @@ dealloc(buffer)
 
   core.shutdown()
 
-  eq(destroyed,1)
+  eq(destroyed,2) -- main menu + owned Evidence Snapshots submenu
 end)
 
 

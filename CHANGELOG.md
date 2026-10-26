@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.1 - Evidence Snapshots
+
+- Evidence Snapshots menu with Capture, Open and Compare.
+- Deterministic snapshot identity with source and target fingerprints.
+- Coverage, candidates, provenance, dependencies, unresolved evidence and limitations preserved as observed.
+- Read-only sectioned memo viewer; comparison uses neutral classifications only.
+- Bounded 8 MiB JSON storage, temporary-file promotion, overwrite preservation and fail-closed corruption handling.
+- Privacy sanitization for provider/helper paths, condition dependencies, limitations and target/module names.
+- Snapshot corpus and corruption fixtures.
+- 542 consolidated checks, 0 failures, 0 skips.
+- v0.3.0 remains the published baseline.
+
 ## 0.3.0 - Dynamic Table Analysis and Validation Coverage
 
 Release candidate. Adds dynamic Lua/table analysis, provenance for table-driven
@@ -10,9 +22,9 @@ coverage-aware reporting, and a reproducible regression corpus.
 - Runtime AOB results are the only source of validation; static resolution is not validation.
 - Limits remain fail-closed and percentages stay null when the universe is unknown.
 - 476 consolidated checks, 0 failures, 0 skips.
-- Not published; no commit, tag or release.
+- Published v0.3.0 baseline.
 
-## 0.3.0-dev - Reporting & UI Integration (030E)
+## 0.3.0-dev - Reporting & UI Integration
 
 - **Coverage Summary**: Diagnostics Summary and Simple Report extend the assessment with an explicit, compact `Coverage Summary` block detailing Collection, Discovery, and Validation dimensions without conflating static discovery with runtime validation.
 - **Dynamic Analysis & Provenance presentation**: Simple Report surfaces top discovered candidates, derivation provenance (helper source and line), conditional branches (resolution unknown), top unresolved dependencies, provenance edge counts, and discovered providers/consumers.
@@ -23,7 +35,7 @@ coverage-aware reporting, and a reproducible regression corpus.
 
 ## 0.3.0-dev - Dynamic Table Analysis (unreleased)
 
-- **Static dataflow core (030B)**: new `ce/modules/dynamic.lua` resolves local scalar/table declarations, ordered nested rows, member/index references and lexical scopes without executing table Lua.
+- **Static dataflow core**: new `ce/modules/dynamic.lua` resolves local scalar/table declarations, ordered nested rows, member/index references and lexical scopes without executing table Lua.
 - **Wrapper contracts**: declarative contracts follow `Register.onEnable` table sets through `Register.multiCustomScan` and record `constructs` provenance for the generated `aobScanRegion` AA text.
 - **Helper resolution**: captured helper files provide `UE.Sig.FName`, `UE.Sig.GUObjectArray` and `UE.Sig.GEnigne[2]` values; `findTableFile`/`_G.Name = include(...)` loader bindings become `includes`/`provides` edges.
 - **Multi-provenance graph**: dependencies carry multiple edges (`passes_to`, `calls`, `constructs`, `provides`, `requires`, `derives_from`, ...) with `lua_local`/`lua_literal`/`lua_dynamic`/`wrapper`/`external_helper` provenance.
@@ -31,11 +43,11 @@ coverage-aware reporting, and a reproducible regression corpus.
 - **script-95 acceptance fixture**: 47 entries, 52 specs, 28 literal (27 unique), 3 derived, 1 conditional, 21 symbol_only (20 pure), 30 unique symbols, 31 candidates, 0 runtime validated.
 - **Local scope fix**: locals declared in an earlier Lua block of the same AA script are no longer reported as globals in later blocks.
 - **Static report**: optional `dynamic_analysis` block; runtime report, operation telemetry and Address Evidence are unchanged.
-- **030B1 corrective pass**: conditional candidates now expose a public JSON-safe `condition` (`conditional_expression`, text, dependencies, resolution=unknown, fallback) instead of an internal AST; table/parse/edge/candidate limits propagate to `status=limit_reached`; exact duplicate edges are de-duplicated by relation/from/to/script/line/provenance; conservative `sharedLocals` remains documented.
-- **030C coverage model**: optional `coverage` block with independent `collection`, `discovery` and `validation` dimensions, explicit denominators, `universe_known`, nullable percentages and fail-closed limits. `source_complete` remains collection-only. Runtime AOB results map only to runtime validation counts.
+- **Corrective pass**: conditional candidates now expose a public JSON-safe `condition` (`conditional_expression`, text, dependencies, resolution=unknown, fallback) instead of an internal AST; table/parse/edge/candidate limits propagate to `status=limit_reached`; exact duplicate edges are de-duplicated by relation/from/to/script/line/provenance; conservative `sharedLocals` remains documented.
+- **Coverage model**: optional `coverage` block with independent `collection`, `discovery` and `validation` dimensions, explicit denominators, `universe_known`, nullable percentages and fail-closed limits. `source_complete` remains collection-only. Runtime AOB results map only to runtime validation counts.
 - No coverage model, UI, runtime tracing or release artifacts in this phase.
 
-## 0.3.0-dev - Regression Corpus (030D)
+## 0.3.0-dev - Regression Corpus
 
 - Added `ce/tests/fixtures/corpus/` with a manifest and fixtures for dynamic tables, wrappers, real callbacks, data-table non-callbacks, helpers, loaders, constructed AA, provenance, duplicate patterns, scope, limits, coverage and runtime replay.
 - Added explicit callback provenance for `registerCallback`-style APIs, without name-based inference; `DhaosCollider` remains a local data table.
@@ -151,7 +163,7 @@ coverage-aware reporting, and a reproducible regression corpus.
 - Add module-dump-1 JSON Schema, real serialized-sidecar contract coverage,
   deterministic isolated runtime fixtures and 40-case Lua/Python evidence parity.
 - Update complete 0.1.9 installation/upgrade instructions with mandatory CE restart.
-- DIESEL independently closed P0-05/P0-06/P0-07 technical criteria: **185 checks,
+- Independent technical review closed P0-05/P0-06/P0-07 criteria: **185 checks,
   0 skips, 0 failures**, using Python 3.14.7 64-bit and jsonschema 4.26.0.
 - Dawnwalker metrics remain historical pending the exact private input; no new
   historical replay or clean-clone requirement is asserted.

@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 
 
+
 def version(source=None):
     text = source if source is not None else (ROOT / 'ce/CESuite_Core.lua').read_text(encoding='utf-8')
     matches = re.findall(r"(?:Core\s*=\s*\{[^}]*?\bversion\s*=\s*['\"]|Core\.version\s*=\s*['\"])([0-9A-Za-z._+-]+)['\"]", text)

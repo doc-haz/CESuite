@@ -1,4 +1,5 @@
 local Export=require('exporter')
+local SnapshotUI=require('snapshotui')
 local M={}
 
 local function present(Core,api,text)
@@ -319,6 +320,73 @@ function M.install(Core,api)
   command('Diagnostics Summary',function()
     local text=Core.simpleText()
     Core.showText(text..Core.operationText())
+  end)
+
+  local snapshots=Core.state.own(api.createMenuItem(menu))
+  snapshots.Caption='Evidence Snapshots'
+  snapshots.Name='CESuiteEvidenceSnapshotsMenu'
+  pcall(function() snapshots.ImageIndex=-1 end)
+  menu.add(snapshots)
+  local function snapshotCommand(caption,callback)
+    local item=api.createMenuItem(snapshots)
+    item.Caption=caption
+    item.OnClick=function()
+      local ok,result=pcall(callback)
+      if not ok then api.showMessage('CESuite: '..tostring(result)) end
+    end
+    pcall(function() item.ImageIndex=-1 end)
+    snapshots.add(item)
+  end
+  snapshotCommand('Capture Snapshot...',function()
+    local dialog=api.createSaveDialog(api.getMainForm())
+    local ok,err=pcall(function()
+      dialog.FileName='CESuite_Evidence_Snapshot.json'
+      dialog.DefaultExt='json'
+      dialog.Filter='CESuite evidence snapshot|*.json'
+      dialog.Options='[ofOverwritePrompt,ofPathMustExist]'
+      if not dialog.execute() then return end
+      local snapshot=Core.captureSnapshot()
+      local result,writeError=Core.writeSnapshot(snapshot,dialog.FileName,{overwrite=true})
+      if not result then error('Snapshot could not be saved.\nReason: '..tostring(writeError and writeError.message or writeError)) end
+      api.showMessage('CESuite evidence snapshot saved:\n'..dialog.FileName..'\nID: '..snapshot.snapshot_id)
+    end)
+    dialog.destroy()
+    if not ok then error(err) end
+  end)
+  snapshotCommand('Open Snapshot...',function()
+    local dialog=api.createOpenDialog(api.getMainForm())
+    local ok,err=pcall(function()
+      dialog.DefaultExt='json'
+      dialog.Filter='CESuite evidence snapshot|*.json'
+      dialog.Options='[ofFileMustExist]'
+      if not dialog.execute() then return end
+      local snapshot,readError=Core.readSnapshot(dialog.FileName)
+      if not snapshot then
+        error('Snapshot could not be opened.\nReason: '..tostring(readError and readError.code or readError)..'.')
+      end
+      Core.showText(SnapshotUI.render(snapshot))
+    end)
+    dialog.destroy()
+    if not ok then error(err) end
+  end)
+  snapshotCommand('Compare Snapshots...',function()
+    local first=api.createOpenDialog(api.getMainForm())
+    local second=api.createOpenDialog(api.getMainForm())
+    local ok,err=pcall(function()
+      first.DefaultExt='json';first.Filter='CESuite evidence snapshot|*.json'
+      first.Title='Select snapshot A';first.Options='[ofFileMustExist]'
+      if not first.execute() then return end
+      second.DefaultExt='json';second.Filter='CESuite evidence snapshot|*.json'
+      second.Title='Select snapshot B';second.Options='[ofFileMustExist]'
+      if not second.execute() then return end
+      local a,errA=Core.readSnapshot(first.FileName)
+      if not a then error('Snapshot A could not be opened.\nReason: '..tostring(errA and errA.code or errA)..'.') end
+      local b,errB=Core.readSnapshot(second.FileName)
+      if not b then error('Snapshot B could not be opened.\nReason: '..tostring(errB and errB.code or errB)..'.') end
+      Core.showText(SnapshotUI.renderDiff(Core.compareSnapshots(a,b)))
+    end)
+    first.destroy();second.destroy()
+    if not ok then error(err) end
   end)
 
   separator()

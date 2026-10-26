@@ -444,9 +444,9 @@ test('Core.simpleText renders the same assessment that the extensive report embe
   os.remove(result.simple);os.remove(result.extensive)
 end)
 
-test('Core.version is 0.3.0 and assessment schema version is stable',function()
+test('Core.version is 0.3.1 and assessment schema version is stable',function()
   local core=loadCore(mockApi({}))
-  eq(core.version,'0.3.0')
+  eq(core.version,'0.3.1')
   local a=core.buildAssessment({target={attached=false},aobs=U.array(),scripts=U.array(),
     dependencies=U.array(),diagnostics=U.array()})
   eq(a.schema_version,'0.1')

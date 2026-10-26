@@ -42,7 +42,7 @@ test('autorun then CT then autorun preserves instance, report and one menu',func
   local core=assert(dofile(autorun));eq(core.status,'ready');eq(core.distribution,'autorun')
   core.last_report={sentinel=true}
   eq(dofile(portable),core);eq(dofile(autorun),core);eq(core.last_report.sentinel,true)
-  eq(menus.Count,1);eq(created,19)
+  eq(menus.Count,1);eq(created,23)
   eq(core.install(),core);eq(menus.Count,1)
 end)
 test('CT then autorun preserves portable instance',function()
@@ -339,7 +339,7 @@ test('final menu order, separators and single menu are exact',function()
     local expected={
       'Analyze Current Process','Analyze Loaded Table','Validate AOBs',
       'Inspect Selected Script','Address Evidence Inspector','-',
-      'Dependency Summary','Diagnostics Summary','-',
+      'Dependency Summary','Diagnostics Summary','Evidence Snapshots','-',
       'Export Analysis Report','Export Reports','Export Module Dump',
       'Static Lua AOB Analysis','Export Static Lua Report','-',
       'Remove CESuite Menu','-','About CESuite'}
@@ -352,7 +352,7 @@ test('final menu order, separators and single menu are exact',function()
     for _,child in ipairs(menus[0].children) do
       if child.Caption=='-' then separators=separators+1 else commands=commands+1 end
     end
-    eq(commands,14)
+    eq(commands,15)
     eq(separators,4)
     eq(menus[0].children[#expected].Caption,'About CESuite')
     eq(menus[0].children[#expected-2].Caption,'Remove CESuite Menu')
@@ -361,18 +361,37 @@ test('final menu order, separators and single menu are exact',function()
     eq(core.status,'ready')
   end
 end)
+test('evidence snapshots submenu owns exactly three commands and is removed',function()
+  local core=assert(dofile(autorun))
+  eq(type(core.captureSnapshot),'function')
+  eq(type(core.writeSnapshot),'function')
+  eq(type(core.readSnapshot),'function')
+  eq(type(core.compareSnapshots),'function')
+  local sub=item('Evidence Snapshots')
+  eq(#sub.children,3)
+  eq(sub.children[1].Caption,'Capture Snapshot...')
+  eq(sub.children[2].Caption,'Open Snapshot...')
+  eq(sub.children[3].Caption,'Compare Snapshots...')
+  item('Remove CESuite Menu').OnClick()
+  eq(menus.Count,0)
+  eq(core.status,'stopped')
+  local again=assert(dofile(autorun))
+  eq(again.status,'ready')
+  eq(#item('Evidence Snapshots').children,3)
+end)
+
 test('removing the menu destroys separators and reinstall recreates one ordered menu',function()
   reset()
   local core=assert(dofile(autorun))
-  eq(#menus[0].children,18)
+  eq(#menus[0].children,19)
   item('Remove CESuite Menu').OnClick()
   eq(menus.Count,0)
   eq(core.status,'stopped')
   local again=assert(dofile(autorun))
   eq(again.status,'ready')
   eq(menus.Count,1)
-  eq(#menus[0].children,18)
-  eq(menus[0].children[18].Caption,'About CESuite')
+  eq(#menus[0].children,19)
+  eq(menus[0].children[19].Caption,'About CESuite')
   eq(menus[0].children[6].Caption,'-')
 end)
 local function nativeForm()
@@ -409,7 +428,7 @@ test('native icons apply the validated CE 7.72 mapping',function()
     for _,child in ipairs(menus[0].children) do
       if child.Caption=='-' then eq(child.ImageIndex,-1,'separator has an icon') end
     end
-    eq(#menus[0].children,18)
+    eq(#menus[0].children,19)
   end
 end)
 test('unknown CE version keeps the menu text-only',function()
@@ -420,7 +439,7 @@ test('unknown CE version keeps the menu text-only',function()
   for _,child in ipairs(menus[0].children) do
     eq(child.ImageIndex,-1,'unexpected icon for '..child.Caption)
   end
-  eq(#menus[0].children,18)
+  eq(#menus[0].children,19)
   item('About CESuite').OnClick()
   assert(#messages>0)
 end)
@@ -432,7 +451,7 @@ test('missing host ImageList keeps the menu text-only',function()
   for _,child in ipairs(menus[0].children) do
     eq(child.ImageIndex,-1,'unexpected icon for '..child.Caption)
   end
-  eq(#menus[0].children,18)
+  eq(#menus[0].children,19)
 end)
 test('out-of-range mapping entries are dropped, others still apply',function()
   reset()
@@ -452,7 +471,7 @@ test('version API failure never breaks the menu',function()
   getMainForm=nativeForm
   assert(dofile(autorun))
   eq(item('Analyze Current Process').ImageIndex,-1)
-  eq(#menus[0].children,18)
+  eq(#menus[0].children,19)
   item('Dependency Summary').OnClick()
   eq(#messages,0)
 end)
@@ -466,7 +485,7 @@ test('remove and recreate applies the native mapping again',function()
   eq(menus.Count,0)
   local again=assert(dofile(autorun))
   eq(menus.Count,1)
-  eq(#menus[0].children,18)
+  eq(#menus[0].children,19)
   eq(item('Validate AOBs').ImageIndex,8)
   eq(item('About CESuite').ImageIndex,11)
   eq(again.status,'ready')

@@ -21,14 +21,25 @@ It provides:
 - optional operation telemetry (timings, source completeness and structured warnings) kept separate from evidence diagnostics;
 - static dynamic-table analysis (0.3.0): local tables, wrapper contracts and multi-provenance pattern candidates;
 - explicit coverage model (0.3.0): collection, discovery and validation are separate dimensions;
-- reproducible regression corpus (0.3.0): FFRS script-95, callbacks, loaders, limits, coverage and runtime replay fixtures;
+- reproducible regression corpus (0.3.0): real-world fixtures for callbacks, loaders, limits, coverage and runtime replay;
 - reporting and UI integration (0.3.0): Coverage Summary, Discovered Candidates, and Provenance presentation without confusing discovery with validation;
+- Evidence Snapshots (0.3.1): read-only capture/open/compare with source and target fingerprints, bounded JSON storage and neutral comparison;
 - native Cheat Engine menu icons (validated mapping for CE 7.72, never modifying host resources);
 - Simple (Markdown) and Extensive (JSON) reports derived from the same evidence;
 - mapped PE module dumping with structured JSON sidecars;
-- structured JSON evidence export for AI assistance, manual review and auditing.
+- structured JSON evidence export for manual review and auditing.
 
 Module dumping is an explicit action: CESuite never reads module memory or writes `.bin` files automatically.
+
+## CESuite v0.3.1 — Evidence Snapshots
+
+Capture what CESuite currently knows, save that evidence, and compare it later
+without modifying the table or target. The viewer is a read-only, sectioned memo
+(not a tabbed UI). Snapshots are bounded JSON files with explicit Capture, Open
+and Compare actions.
+
+v0.3.1 remains a freeze candidate; publication is a separate authorization step.
+The local freeze suite is 542 checks.
 
 ## User-facing actions
 
@@ -48,7 +59,7 @@ text-only.
 | **Address Evidence Inspector** | Read-only evidence for one explicit address: resolution, module/RVA, region and protection, bounded bytes, a conservative instruction decode, operand/effective-address evidence and a type advisory. No breakpoints, writes or expression evaluation. |
 | **Dependency Summary** | Grouped lexical dependency occurrences, preserving raw evidence; not a resolved runtime dependency graph. |
 | **Diagnostics Summary** | Derives the diagnostic assessment from one fresh collection and shows the readable Simple Report (Markdown) in the viewer. No files are written. |
-| **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, AI-assisted analysis or external tooling. You choose where to save it; nothing is uploaded. |
+| **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, external tooling or later analysis. You choose where to save it; nothing is uploaded. |
 | **Export Reports** | Writes `<base>_Simple.md` and `<base>_Extensive.json` from the same collection. The extensive report contains runtime evidence, static Lua evidence and the structured assessment. Existing files need explicit overwrite confirmation. |
 | **Export Module Dump** | A loaded PE module in mapped-image layout, plus JSON metadata, progress, cancellation and backup-preserving overwrite confirmation. |
 | **Static Lua AOB Analysis** | Passive lexical analysis of table Lua scripts for supported AOB patterns, displayed in the read-only viewer without live scans. |
@@ -63,7 +74,7 @@ CESuite produces two reports from one evidence model:
 
 - **Simple Report** (Markdown): what CESuite analyzed, what looks OK, what presents
   problems, the evidence and confidence behind each problem, possible causes, what
-  to review next, and a fixed review order. Written for people and AI tooling; it
+  to review next, and a fixed review order. Written for people and external tooling; it
   never recommends an automatic repair.
 - **Extensive Report** (JSON): the complete runtime report, static Lua evidence and
   the same `assessment` object, with provenance, confidence, limitations and
@@ -211,6 +222,6 @@ CESuite is designed, implemented, tested and maintained by:
 
 Earlier project history or commits may reference the previous handle `dokkoriax`.
 
-Development has used AI-assisted engineering for implementation, review, testing and documentation. Final technical and release decisions remain with the project maintainer.
+Development uses automated tests, schema checks and review. Final technical and release decisions remain with the project maintainer.
 
 Released under the [Apache License, Version 2.0](LICENSE).
