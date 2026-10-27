@@ -212,7 +212,7 @@ unchanged.
 address and `Core.exportAddressEvidence(evidence, path)` serializes it against
 `schemas/address-evidence.schema.json`. It is never called from `collectReport()`:
 the runtime report, the assessment and the static Lua block are unchanged.
-`core_version` stays `0.1.9`; `suite_version` is `0.3.1`. Accepted input is hex,
+`core_version` stays `0.1.9`; `suite_version` is `0.3.2`. Accepted input is hex,
 `module+RVA` or a numeric Memory Viewer selection; CE expressions are not evaluated.
 Bounds are declared in the evidence (`1` address, `64` bytes, no timers, no
 breakpoints, no writes). Details: [address-evidence.md](address-evidence.md).

@@ -24,6 +24,7 @@ It provides:
 - reproducible regression corpus (0.3.0): real-world fixtures for callbacks, loaders, limits, coverage and runtime replay;
 - reporting and UI integration (0.3.0): Coverage Summary, Discovered Candidates, and Provenance presentation without confusing discovery with validation;
 - Evidence Snapshots (0.3.1): read-only capture/open/compare with source and target fingerprints, bounded JSON storage and neutral comparison;
+- Evidence Advisor (0.3.2): deterministic, read-only findings with evidence/interpretation separation and Explain Comparison;
 - native Cheat Engine menu icons (validated mapping for CE 7.72, never modifying host resources);
 - Simple (Markdown) and Extensive (JSON) reports derived from the same evidence;
 - mapped PE module dumping with structured JSON sidecars;
@@ -31,15 +32,20 @@ It provides:
 
 Module dumping is an explicit action: CESuite never reads module memory or writes `.bin` files automatically.
 
-## CESuite v0.3.1 — Evidence Snapshots
+## CESuite v0.3.2 — Evidence Advisor
 
-Capture what CESuite currently knows, save that evidence, and compare it later
-without modifying the table or target. The viewer is a read-only, sectioned memo
-(not a tabbed UI). Snapshots are bounded JSON files with explicit Capture, Open
-and Compare actions.
+Evidence Advisor interprets the evidence already captured by CESuite. It can
+explain a snapshot comparison in read-only, deterministic findings: what changed,
+which observations support it, possible causes, review-only next steps and what
+must not be assumed. It never repairs, rewrites, activates or patches anything.
 
-v0.3.1 remains a freeze candidate; publication is a separate authorization step.
-The local freeze suite is 542 checks.
+v0.3.2 adds `Explain Comparison...` to the existing Evidence
+Snapshots submenu, with safe native pair selection and a read-only sectioned
+memo. Evidence Snapshots v1 identity remains unchanged: the same observed
+evidence has the same `snapshot_id` even when filenames and file hashes differ.
+
+v0.3.1 remains the published baseline. v0.3.2 reports 548 release
+checks separately from 67 Advisor Lua, 9 Advisor UI and 6 Python checks.
 
 ## User-facing actions
 
@@ -62,6 +68,7 @@ text-only.
 | **Evidence Snapshots → Capture Snapshot...** | Captures the evidence CESuite currently observes, asks for a destination and writes a bounded, versioned JSON snapshot. It does not modify the table, target or records. |
 | **Evidence Snapshots → Open Snapshot...** | Opens a validated snapshot in a read-only, sectioned memo. Invalid, oversized or unsupported snapshots fail with a clear error. |
 | **Evidence Snapshots → Compare Snapshots...** | Compares two snapshots and shows neutral evidence changes (unchanged, added, removed, changed, unknown, not comparable). It does not repair or declare compatibility. |
+| **Evidence Snapshots → Explain Comparison...** | Validates two selected snapshots, builds the canonical diff, runs the deterministic Evidence Advisor, and opens a read-only findings viewer. It is review guidance only; no repair or relocation action is available. |
 | **Export Analysis Report** | Saves a fresh normalized JSON report for manual review, external tooling or later analysis. You choose where to save it; nothing is uploaded. |
 | **Export Reports** | Writes `<base>_Simple.md` and `<base>_Extensive.json` from the same collection. The extensive report contains runtime evidence, static Lua evidence and the structured assessment. Existing files need explicit overwrite confirmation. |
 | **Export Module Dump** | A loaded PE module in mapped-image layout, plus JSON metadata, progress, cancellation and backup-preserving overwrite confirmation. |
@@ -181,7 +188,7 @@ Review exported scripts, paths and memory contents before sharing them with a pe
 
 Automated regression test results:
 
-- **542 passing checks**
+- **541 passing checks**
 - **0 skips**
 - **0 failures**
 
@@ -225,6 +232,7 @@ CESuite is designed, implemented, tested and maintained by:
 
 Earlier project history or commits may reference the previous handle `dokkoriax`.
 
-Development uses automated tests, schema checks and review. Final technical and release decisions remain with the project maintainer.
+Implementation, review, testing and documentation were AI-assisted. Final
+technical decisions and validation remain under user control.
 
 Released under the [Apache License, Version 2.0](LICENSE).

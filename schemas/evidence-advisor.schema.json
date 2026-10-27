@@ -1,0 +1,483 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/doc-haz/CESuite/schemas/evidence-advisor.schema.json",
+  "title": "CESuite Evidence Advisor Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "advisor_version",
+    "schema_id",
+    "advisor_report_id",
+    "ruleset_version",
+    "suite_version",
+    "generated_at",
+    "input",
+    "findings",
+    "limitations",
+    "summary",
+    "truncated",
+    "truncation"
+  ],
+  "properties": {
+    "advisor_version": {
+      "const": 1
+    },
+    "schema_id": {
+      "const": "cesuite.evidence_advisor"
+    },
+    "advisor_report_id": {
+      "type": "string",
+      "pattern": "^adv-[0-9a-f]{32}$"
+    },
+    "ruleset_version": {
+      "const": 1
+    },
+    "suite_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "input_id",
+        "snapshot_a",
+        "snapshot_b",
+        "comparability"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "snapshot_diff",
+            "snapshot",
+            "analysis"
+          ]
+        },
+        "input_id": {
+          "type": "string"
+        },
+        "snapshot_a": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "snapshot_b": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "comparability": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "string"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_count",
+        "by_severity",
+        "by_category",
+        "headline"
+      ],
+      "properties": {
+        "finding_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "by_severity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "INFO",
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ],
+          "properties": {
+            "INFO": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "LOW": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "MEDIUM": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "HIGH": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "CRITICAL": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "by_category": {
+          "type": "array",
+          "maxItems": 19,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "category",
+              "count"
+            ],
+            "properties": {
+              "category": {
+                "enum": [
+                  "source_change",
+                  "pattern_change",
+                  "validation_change",
+                  "coverage_gap",
+                  "dependency_change",
+                  "provider_change",
+                  "target_change",
+                  "build_change",
+                  "unresolved_dependency",
+                  "candidate_ambiguity",
+                  "candidate_missing",
+                  "candidate_added",
+                  "runtime_validation_unavailable",
+                  "module_change",
+                  "address_evidence_change",
+                  "operation_limit",
+                  "privacy_redaction",
+                  "no_meaningful_change",
+                  "comparability_gap"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "headline": {
+          "type": "string"
+        }
+      }
+    },
+    "truncated": {
+      "type": "boolean"
+    },
+    "truncation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "findings_capped",
+        "fields_capped",
+        "limitations_capped"
+      ],
+      "properties": {
+        "findings_capped": {
+          "type": "boolean"
+        },
+        "fields_capped": {
+          "type": "boolean"
+        },
+        "limitations_capped": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "entity",
+        "id",
+        "field",
+        "value"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "diff",
+            "snapshot_a",
+            "snapshot_b",
+            "analysis",
+            "address"
+          ]
+        },
+        "entity": {
+          "enum": [
+            "comparability",
+            "candidate",
+            "coverage",
+            "target",
+            "module",
+            "dependency",
+            "unresolved",
+            "operation",
+            "address"
+          ]
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "field": {
+          "type": "string"
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "nextStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "detail"
+      ],
+      "properties": {
+        "action": {
+          "enum": [
+            "REVIEW_EVIDENCE",
+            "CAPTURE_NEW_SNAPSHOT",
+            "COMPARE_TARGET_BUILD",
+            "INCREASE_COVERAGE",
+            "VALIDATE_CANDIDATE",
+            "REVIEW_PROVENANCE",
+            "REVIEW_DEPENDENCIES",
+            "RUN_ADDRESS_EVIDENCE",
+            "REQUEST_RELOCATION_CANDIDATES"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        },
+        "requires_user_approval": {
+          "type": "boolean"
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "rule_id",
+        "code",
+        "category",
+        "severity",
+        "status",
+        "confidence",
+        "evidence_refs",
+        "observations",
+        "interpretation",
+        "likely_causes",
+        "suggested_next_steps",
+        "do_not_assume",
+        "limitations",
+        "rule_metadata"
+      ],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "pattern": "^advf-[0-9a-f]{32}$"
+        },
+        "rule_id": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "source_change",
+            "pattern_change",
+            "validation_change",
+            "coverage_gap",
+            "dependency_change",
+            "provider_change",
+            "target_change",
+            "build_change",
+            "unresolved_dependency",
+            "candidate_ambiguity",
+            "candidate_missing",
+            "candidate_added",
+            "runtime_validation_unavailable",
+            "module_change",
+            "address_evidence_change",
+            "operation_limit",
+            "privacy_redaction",
+            "no_meaningful_change",
+            "comparability_gap"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "INFO",
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ]
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "unknown",
+            "not_comparable",
+            "insufficient_evidence"
+          ]
+        },
+        "confidence": {
+          "enum": [
+            "exact",
+            "strong",
+            "weak",
+            "unknown"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/evidenceRef"
+          }
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string"
+          }
+        },
+        "interpretation": {
+          "type": "string"
+        },
+        "likely_causes": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "string"
+          }
+        },
+        "suggested_next_steps": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/nextStep"
+          }
+        },
+        "do_not_assume": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "precedence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9
+        },
+        "rule_metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule_id",
+            "category",
+            "severity",
+            "default_confidence",
+            "precedence",
+            "required_evidence"
+          ],
+          "properties": {
+            "rule_id": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "severity": {
+              "enum": [
+                "INFO",
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "CRITICAL"
+              ]
+            },
+            "default_confidence": {
+              "enum": [
+                "exact",
+                "strong",
+                "weak",
+                "unknown"
+              ]
+            },
+            "precedence": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9
+            },
+            "required_evidence": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

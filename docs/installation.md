@@ -1,5 +1,9 @@
 # CESuite 0.3.1 installation
 
+> v0.3.2 is the current release. This page documents the published
+> v0.3.1 baseline; use the v0.3.2 candidate artifacts only after release
+> authorization.
+
 Choose either mode. Both run locally without Python, GitHub, network access,
 credentials or tokens.
 

@@ -18,8 +18,10 @@ local Coverage=require('coverage')
 local Snapshot=require('snapshot')
 local SnapshotStore=require('snapshotstore')
 local SnapshotUI=require('snapshotui')
+local Advisor=require('advisor')
+local AdvisorUI=require('advisorui')
 local Operations=require('operations')
-local Core={identity='CESuiteCore',version='0.3.1',schema_version='0.1',status='stopped',state=Life.new()}
+local Core={identity='CESuiteCore',version='0.3.2',schema_version='0.1',status='stopped',state=Life.new()}
 local function tableHelpers()
   local helpers=U.array()
   local function add(name,alias)
@@ -189,7 +191,7 @@ function Core.analyzeStaticLua(options)
     return staticReport
   end)
 end
--- Explicit static Lua report export (0.3.1). Analysis is read-only text.
+-- Explicit static Lua report export (0.3.2). Analysis is read-only text.
 -- Evidence snapshots are explicit user actions. Capture is read-only and
 -- storage is delegated to the bounded snapshotstore module.
 function Core.captureSnapshot(options)
@@ -219,6 +221,36 @@ end
 
 function Core.renderSnapshotDiff(diff)
   return SnapshotUI.renderDiff(diff)
+end
+
+-- Evidence Advisor wrappers: pure interpretation plus presentation. The caller
+-- supplies already validated snapshot/diff evidence; Core does not read memory.
+function Core.analyzeAdvisor(input,options)
+  return Advisor.analyze(input,options)
+end
+function Core.explainComparison(snapshotA,snapshotB,options)
+  assert(type(snapshotA)=='table' and type(snapshotB)=='table','two snapshots required')
+  local diff
+  local ok,result=pcall(function() return Snapshot.compare(snapshotA,snapshotB) end)
+  if not ok then return nil,{code='diff_unavailable',message=tostring(result)} end
+  diff=result
+  local report,err=Advisor.analyze(diff,{suite_version=Core.version,generated_at=options and options.generated_at})
+  if not report then return nil,err end
+  local valid,errors=Advisor.validate(report,diff)
+  if not valid then return nil,{code='advisor_invalid_report',errors=errors} end
+  return report,diff
+end
+function Core.renderAdvisor(report)
+  return AdvisorUI.render(report)
+end
+function Core.showAdvisor(report)
+  local ok,errors=Advisor.validate(report)
+  if not ok then return nil,{code='advisor_invalid_report',errors=errors} end
+  Core.showText(Core.renderAdvisor(report))
+  return true
+end
+function Core.renderAdvisorError(err,errors)
+  return AdvisorUI.renderError(err,errors)
 end
 
 function Core.exportStaticLuaReport(path,options)

@@ -55,7 +55,7 @@ end
 local function capture(opts)
   opts=opts or {}
   return S.capture(opts.report or base(opts),{created_at=opts.created_at or '2026-10-26T12:00:00Z',
-    suite_version='0.3.1',include_pid=opts.include_pid})
+    suite_version='0.3.2',include_pid=opts.include_pid})
 end
 local function ok(s) local valid,errs=S.validate(s);assert(valid,table.concat(errs,'; '));return s end
 

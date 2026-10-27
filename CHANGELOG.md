@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.2 - Evidence Advisor
+
+Release. Adds deterministic, read-only interpretation of snapshot
+differences.
+
+- Evidence Advisor engine with advisor/ruleset version 1 and 26 rules.
+- `Explain Comparison...` in the existing Evidence Snapshots submenu.
+- Read-only findings: Overview, Findings, Observed Evidence, Evidence References,
+  Interpretation, Possible causes, Suggested Next Steps, Do Not Assume,
+  Limitations and Rule trace.
+- Evidence/interpretation separation, deterministic report IDs and neutral
+  comparison semantics.
+- Safe native pair selection: snapshot A is read and validated before snapshot B
+  is selected; cancel/read failure cannot reuse stale state.
+- No automatic repair, relocation, rewrite, activation or memory write.
+- Historical v0.3.1 release: 541 verified checks.
+- Current v0.3.2 release: 548 regression checks, 67 Advisor Lua, 9 Advisor UI
+  and 6 Python checks; 0 failures, 0 skips.
+
 ## 0.3.1 - Evidence Snapshots
 
 - Evidence Snapshots menu with Capture, Open and Compare.
@@ -9,7 +28,7 @@
 - Bounded 8 MiB JSON storage, temporary-file promotion, overwrite preservation and fail-closed corruption handling.
 - Privacy sanitization for provider/helper paths, condition dependencies, limitations and target/module names.
 - Snapshot corpus and corruption fixtures.
-- 542 consolidated checks, 0 failures, 0 skips.
+- 541 verified consolidated checks in the published v0.3.1 tree, 0 failures, 0 skips.
 - v0.3.0 remains the published baseline.
 
 ## 0.3.0 - Dynamic Table Analysis and Validation Coverage

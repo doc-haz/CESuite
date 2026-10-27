@@ -1,4 +1,4 @@
--- Static Lua/dataflow analysis for CESuite v0.3.0-dev (030B).
+-- Static Lua/dataflow analysis for CESuite v0.3.0.
 -- Text only: this module never calls load/loadstring/dofile/require, never
 -- executes table source and never touches CE process state.
 local U = require('util')

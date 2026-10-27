@@ -38,7 +38,7 @@
       "const": "0.1.9"
     },
     "suite_version": {
-      "const": "0.3.1"
+      "const": "0.3.2"
     },
     "generated_at": {
       "type": "string",

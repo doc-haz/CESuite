@@ -42,7 +42,7 @@ test('autorun then CT then autorun preserves instance, report and one menu',func
   local core=assert(dofile(autorun));eq(core.status,'ready');eq(core.distribution,'autorun')
   core.last_report={sentinel=true}
   eq(dofile(portable),core);eq(dofile(autorun),core);eq(core.last_report.sentinel,true)
-  eq(menus.Count,1);eq(created,23)
+  eq(menus.Count,1);eq(created,24)
   eq(core.install(),core);eq(menus.Count,1)
 end)
 test('CT then autorun preserves portable instance',function()
@@ -361,23 +361,99 @@ test('final menu order, separators and single menu are exact',function()
     eq(core.status,'ready')
   end
 end)
-test('evidence snapshots submenu owns exactly three commands and is removed',function()
+test('Core explain comparison validates and renders advisor evidence',function()
+  local core=assert(dofile(portable))
+  eq(type(core.explainComparison),'function')
+  eq(type(core.renderAdvisor),'function')
+  local a,errA=core.readSnapshot('ce/tests/fixtures/corpus/snapshots/pattern-changed-a.json')
+  assert(a,errA and errA.code)
+  local b,errB=core.readSnapshot('ce/tests/fixtures/corpus/snapshots/pattern-changed-b.json')
+  assert(b,errB and errB.code)
+  local report,err=core.explainComparison(a,b)
+  assert(report,err and err.code)
+  local text=core.renderAdvisor(report)
+  assert(text:find('PATTERN_CHANGED',1,true))
+  assert(text:find('## Overview',1,true))
+end)
+
+test('Explain Comparison menu command validates and renders into one read-only memo',function()
+  local core=assert(dofile(portable))
+  local dialogs=0
+  local memo={Lines={}}
+  createOpenDialog=function()
+    dialogs=dialogs+1
+    local path=dialogs==1 and 'ce/tests/fixtures/corpus/snapshots/pattern-changed-a.json'
+      or 'ce/tests/fixtures/corpus/snapshots/pattern-changed-b.json'
+    return {FileName=path,execute=function() return true end,destroy=function() end}
+  end
+  createForm=function() return {show=function() end,hide=function() end,destroy=function() end} end
+  createMemo=function() return memo end
+  local explain=nil;for _,c in ipairs(item('Evidence Snapshots').children) do if c.Caption=='Explain Comparison...' then explain=c end end;assert(explain)
+  explain.OnClick()
+  eq(dialogs,2)
+  assert(memo.Lines.Text:find('## Overview',1,true))
+  assert(memo.Lines.Text:find('PATTERN_CHANGED',1,true))
+  assert(not memo.Lines.Text:find('table: 0',1,true))
+end)
+
+test('Explain pair selection freezes A before selecting B and rejects stale reuse',function()
+  local core=assert(dofile(portable))
+  local a='ce/tests/fixtures/corpus/snapshots/pattern-changed-a.json'
+  local b='ce/tests/fixtures/corpus/snapshots/pattern-changed-b.json'
+  local bad='ce/tests/fixtures/corpus/snapshots/corrupt/invalid-json.json'
+  local sa=assert(core.readSnapshot(a)).snapshot_id
+  local sb=assert(core.readSnapshot(b)).snapshot_id
+  local memo={Lines={}};local messages={};local queue={};local qi=1
+  showMessage=function(m) messages[#messages+1]=m end
+  createForm=function() return {show=function() end,hide=function() end,destroy=function() end} end
+  createMemo=function() return memo end
+  local shared={FileName='',destroy=function() end}
+  shared.execute=function()
+    local p=queue[qi];qi=qi+1
+    if not p then return false end
+    shared.FileName=p;return true
+  end
+  createOpenDialog=function() return shared end
+  local explain=nil;for _,c in ipairs(item('Evidence Snapshots').children) do if c.Caption=='Explain Comparison...' then explain=c end end;assert(explain)
+  local function run(paths)
+    queue=paths;qi=1;messages={};explain.OnClick()
+    return memo.Lines.Text or ''
+  end
+  local function input(text)
+    local x=text:match('Input ID: ([^\n]+)');return x
+  end
+  local first=run({a,b});assert(input(first),table.concat(messages,'|')..' || '..first);eq(input(first),sa..':'..sb)
+  eq(input(run({b,a})),sb..':'..sa)
+  eq(input(run({a,a})),sa..':'..sa)
+  eq(input(run({b,b})),sb..':'..sb)
+  assert(run({a,b}):find('PATTERN_CHANGED',1,true))
+  assert(run({b,a}):find('PATTERN_CHANGED',1,true))
+
+  memo.Lines.Text='sentinel'
+  run({a,false});eq(memo.Lines.Text,'sentinel')
+  run({false});eq(memo.Lines.Text,'sentinel')
+  run({a,bad});eq(memo.Lines.Text,'sentinel');assert(#messages>0)
+  run({bad,b});eq(memo.Lines.Text,'sentinel');assert(#messages>0)
+end)
+
+test('evidence snapshots submenu owns exactly four commands and is removed',function()
   local core=assert(dofile(autorun))
   eq(type(core.captureSnapshot),'function')
   eq(type(core.writeSnapshot),'function')
   eq(type(core.readSnapshot),'function')
   eq(type(core.compareSnapshots),'function')
   local sub=item('Evidence Snapshots')
-  eq(#sub.children,3)
+  eq(#sub.children,4)
   eq(sub.children[1].Caption,'Capture Snapshot...')
   eq(sub.children[2].Caption,'Open Snapshot...')
   eq(sub.children[3].Caption,'Compare Snapshots...')
+  eq(sub.children[4].Caption,'Explain Comparison...')
   item('Remove CESuite Menu').OnClick()
   eq(menus.Count,0)
   eq(core.status,'stopped')
   local again=assert(dofile(autorun))
   eq(again.status,'ready')
-  eq(#item('Evidence Snapshots').children,3)
+  eq(#item('Evidence Snapshots').children,4)
 end)
 
 test('removing the menu destroys separators and reinstall recreates one ordered menu',function()

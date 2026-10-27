@@ -76,7 +76,7 @@ getMainForm=function() return {Menu={Items={Count=0,add=function() end}}} end
 createMenuItem=function() return {add=function() end,destroy=function() end,children={}} end
 apply({})
 local Core=assert(loadfile('releases/CESuite_Core.lua','t',setmetatable({api=_G,require=require},{__index=_G})))()
-assert(Core.version=='0.3.1','unexpected version '..tostring(Core.version))
+assert(Core.version=='0.3.2','unexpected version '..tostring(Core.version))
 local function write(name,evidence)
   Core.exportAddressEvidence(evidence,'__DIR__/'..name..'.json')
 end
@@ -150,7 +150,7 @@ class AddressEvidenceContractTests(unittest.TestCase):
                      'ambiguous', 'invalidated', 'no_region'):
             self.assertIn(name, self.docs)
         self.assertEqual(self.docs['resolved']['status'], 'observed')
-        self.assertEqual(self.docs['resolved']['suite_version'], '0.3.1')
+        self.assertEqual(self.docs['resolved']['suite_version'], '0.3.2')
         self.assertEqual(self.docs['resolved']['core_version'], '0.1.9')
         self.assertEqual(self.docs['resolved']['query']['resolution_status'], 'resolved')
         self.assertEqual(self.docs['invalid']['query']['resolution_status'], 'invalid_input')

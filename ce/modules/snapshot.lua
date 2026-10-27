@@ -543,7 +543,7 @@ function M.capture(report,options)
   local snapshot={
     snapshot_version=M.VERSION,schema_id='cesuite.evidence_snapshot',snapshot_id='',
     created_at=options.created_at or os.date('!%Y-%m-%dT%H:%M:%SZ'),
-    suite_version=options.suite_version or '0.3.1',core_version=options.core_version or '0.1.9',
+    suite_version=options.suite_version or '0.3.2',core_version=options.core_version or '0.1.9',
     source=source,target=target,coverage=cov,
     operation=build_operation(report,redactions),provenance=build_provenance(report),
     candidates=candidates,dependencies=dependencies,

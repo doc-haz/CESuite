@@ -274,6 +274,36 @@ class RuntimeContractTests(unittest.TestCase):
                           'getAddress', 'getAddressSafe', 'loadstring', 'shellExecute']:
             self.assertIsNone(re.search(r'\b' + forbidden + r'\s*\(', source), forbidden)
 
+    def _assert_advisor_not_packaged(self, output):
+        with zipfile.ZipFile(output / f'CESuite_Autorun_v{builder.version()}.zip') as archive:
+            names = set(archive.namelist())
+            self.assertNotIn('cesuite/advisor.lua', names)
+            self.assertNotIn('cesuite/advisorrules.lua', names)
+            self.assertNotIn('cesuite/advisorui.lua', names)
+        core = (output / 'CESuite_Core.lua').read_text(encoding='utf-8')
+        ct = (output / f'CESuite_Core_v{builder.version()}.CT').read_text(encoding='utf-8')
+        for text in (core, ct):
+            self.assertNotIn('factories[\'advisor\']', text)
+            self.assertNotIn('factories[\'advisorrules\']', text)
+
+    def test_advisor_modules_are_not_in_v031_package(self):
+        files = builder.autorun_files(builder.V031_MODULES)
+        self.assertNotIn('cesuite/advisor.lua', files)
+        self.assertNotIn('cesuite/advisorrules.lua', files)
+        self.assertNotIn('cesuite/advisorui.lua', files)
+
+    def test_v031_package_isolation_guard_detects_sabotage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            builder.build(output, builder.V031_MODULES + ('advisor.lua',))
+            with self.assertRaises(AssertionError):
+                self._assert_advisor_not_packaged(output)
+
+    def test_dev_manifest_includes_advisor_exactly_once(self):
+        self.assertEqual(builder.modules_for_version().count('advisor.lua'), 1)
+        self.assertEqual(builder.modules_for_version().count('advisorrules.lua'), 1)
+        self.assertEqual(builder.modules_for_version().count('advisorui.lua'), 1)
+
     def test_autorun_structure_content_and_reproducibility(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
@@ -283,7 +313,7 @@ class RuntimeContractTests(unittest.TestCase):
             builder.build(output)
             self.assertEqual(original, (output / name).read_bytes())
             expected = {'CESuite_Autorun.lua', 'cesuite/core.lua', 'cesuite/bootstrap.lua'}
-            expected.update('cesuite/' + p.name for p in (ROOT / 'ce/modules').glob('*.lua'))
+            expected.update('cesuite/' + name for name in builder.modules_for_version())
             if (ROOT / 'LICENSE').is_file():
                 expected.add('LICENSE')
             with zipfile.ZipFile(output / name) as archive:

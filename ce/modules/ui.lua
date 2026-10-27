@@ -337,6 +337,27 @@ function M.install(Core,api)
     pcall(function() item.ImageIndex=-1 end)
     snapshots.add(item)
   end
+  local function selectSnapshot(Core,api,title)
+    local dialog=api.createOpenDialog(api.getMainForm())
+    local snapshot,path
+    local ok,err=pcall(function()
+      dialog.DefaultExt='json'
+      dialog.Filter='CESuite evidence snapshot|*.json'
+      dialog.Title=title
+      dialog.Options='[ofFileMustExist]'
+      if not dialog.execute() then return end
+      path=dialog.FileName
+      local readError
+      snapshot,readError=Core.readSnapshot(path)
+      if not snapshot then
+        error('Snapshot could not be opened.\nReason: '..tostring(readError and readError.code or readError)..'.')
+      end
+    end)
+    dialog.destroy()
+    if not ok then error(err) end
+    return snapshot,path
+  end
+
   snapshotCommand('Capture Snapshot...',function()
     local dialog=api.createSaveDialog(api.getMainForm())
     local ok,err=pcall(function()
@@ -370,23 +391,24 @@ function M.install(Core,api)
     if not ok then error(err) end
   end)
   snapshotCommand('Compare Snapshots...',function()
-    local first=api.createOpenDialog(api.getMainForm())
-    local second=api.createOpenDialog(api.getMainForm())
-    local ok,err=pcall(function()
-      first.DefaultExt='json';first.Filter='CESuite evidence snapshot|*.json'
-      first.Title='Select snapshot A';first.Options='[ofFileMustExist]'
-      if not first.execute() then return end
-      second.DefaultExt='json';second.Filter='CESuite evidence snapshot|*.json'
-      second.Title='Select snapshot B';second.Options='[ofFileMustExist]'
-      if not second.execute() then return end
-      local a,errA=Core.readSnapshot(first.FileName)
-      if not a then error('Snapshot A could not be opened.\nReason: '..tostring(errA and errA.code or errA)..'.') end
-      local b,errB=Core.readSnapshot(second.FileName)
-      if not b then error('Snapshot B could not be opened.\nReason: '..tostring(errB and errB.code or errB)..'.') end
-      Core.showText(SnapshotUI.renderDiff(Core.compareSnapshots(a,b)))
-    end)
-    first.destroy();second.destroy()
-    if not ok then error(err) end
+    local a=selectSnapshot(Core,api,'Select snapshot A')
+    if not a then return end
+    local b=selectSnapshot(Core,api,'Select snapshot B')
+    if not b then return end
+    Core.showText(SnapshotUI.renderDiff(Core.compareSnapshots(a,b)))
+  end)
+
+  snapshotCommand('Explain Comparison...',function()
+    local a=selectSnapshot(Core,api,'Select snapshot A')
+    if not a then return end
+    local b=selectSnapshot(Core,api,'Select snapshot B')
+    if not b then return end
+    local report,advisorError=Core.explainComparison(a,b)
+    if not report then
+      error('Advisor report unavailable.\n'..Core.renderAdvisorError(advisorError,advisorError and advisorError.errors))
+    end
+    local shown,showError=Core.showAdvisor(report)
+    if not shown then error('Advisor report unavailable.\n'..Core.renderAdvisorError(showError,showError and showError.errors)) end
   end)
 
   separator()

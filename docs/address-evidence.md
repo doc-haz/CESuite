@@ -1,4 +1,4 @@
-# Address Evidence Inspector (0.3.1)
+# Address Evidence Inspector (0.3.2)
 
 The inspector answers one question:
 
